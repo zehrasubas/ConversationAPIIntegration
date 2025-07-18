@@ -24,11 +24,16 @@ const ChatBox = ({ user }) => {
   // Fetch message history when chat is opened
   useEffect(() => {
     const loadMessageHistory = async () => {
+      if (!user?.psid) {
+        console.warn('No PSID available for loading message history');
+        return;
+      }
+      
       try {
         setIsLoading(true);
         const response = await chatService.fetchMessageHistory(user.psid);
         console.log('Message history loaded:', response);
-        if (response.messages) {
+        if (response?.messages) {
           setMessages(response.messages);
         }
       } catch (error) {
@@ -45,10 +50,10 @@ const ChatBox = ({ user }) => {
       }
     };
 
-    if (isOpen && isAuthenticated) {
+    if (isOpen && isAuthenticated && user?.psid) {
       loadMessageHistory();
     }
-  }, [isOpen, isAuthenticated, user.psid]);
+  }, [isOpen, isAuthenticated, user?.psid]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,6 +73,10 @@ const ChatBox = ({ user }) => {
 
     try {
       // Send message to backend
+      if (!user?.psid) {
+        throw new Error('No PSID available for sending message');
+      }
+      
       const response = await chatService.sendMessage(inputMessage, user.psid);
       console.log('Message sent successfully:', response);
       

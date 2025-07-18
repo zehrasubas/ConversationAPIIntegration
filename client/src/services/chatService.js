@@ -6,6 +6,10 @@ const BASE_URL = process.env.REACT_APP_API_URL || (
 
 const initializeConversation = async (psid) => {
   try {
+    if (!psid) {
+      throw new Error('PSID is required for conversation initialization');
+    }
+    
     const response = await fetch(`${BASE_URL}/api/conversations/initialize`, {
       method: 'POST',
       headers: {
@@ -32,6 +36,10 @@ const initializeConversation = async (psid) => {
 
 const sendMessage = async (message, psid) => {
   try {
+    if (!message || !psid) {
+      throw new Error('Message and PSID are required');
+    }
+    
     // First, ensure we have an active conversation
     await initializeConversation(psid);
 
@@ -62,6 +70,10 @@ const sendMessage = async (message, psid) => {
 
 const fetchMessageHistory = async (psid) => {
   try {
+    if (!psid) {
+      throw new Error('PSID is required');
+    }
+    
     // First, ensure we have an active conversation
     await initializeConversation(psid);
     

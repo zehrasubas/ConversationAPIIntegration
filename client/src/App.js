@@ -243,11 +243,16 @@ function App() {
 
   const handleFacebookLogin = async (userInfo) => {
     console.log('Login successful:', userInfo);
-    console.log('Facebook User ID:', userInfo.id);
+    console.log('Facebook User ID:', userInfo?.id);
     
     try {
       // Get the Facebook User ID from the login response
-      const facebookUserId = userInfo.id;
+      const facebookUserId = userInfo?.id;
+      
+      if (!facebookUserId) {
+        console.error('No user ID received from Facebook');
+        return;
+      }
       
       // Exchange Facebook User ID for PSID through our server
       const response = await fetch('/api/exchange-token', {
@@ -263,7 +268,7 @@ function App() {
       const data = await response.json();
       console.log('PSID Exchange Response:', data);
       
-      if (data.success && data.psid) {
+      if (data?.success && data?.psid) {
         console.log('Received PSID:', data.psid);
         console.log('Messenger Profile:', data.profile);
         console.log('User Data:', data.user);
