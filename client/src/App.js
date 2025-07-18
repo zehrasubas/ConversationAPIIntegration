@@ -7,6 +7,8 @@ function FacebookLogin({ onLogin }) {
   const [sdkFailed, setSdkFailed] = React.useState(false);
 
   React.useEffect(() => {
+    let timeoutId;
+    
     // Load the Facebook SDK
     const loadFacebookSDK = () => {
       console.log('🔄 Starting Facebook SDK load...');
@@ -24,6 +26,9 @@ function FacebookLogin({ onLogin }) {
           console.log('✅ Facebook SDK initialized successfully');
           setIsSdkLoaded(true);
           
+          // Clear timeout since SDK loaded successfully
+          if (timeoutId) clearTimeout(timeoutId);
+          
           // Test if FB is working
           window.FB.getLoginStatus(function(response) {
             console.log('📊 FB Login Status:', response);
@@ -33,16 +38,15 @@ function FacebookLogin({ onLogin }) {
           console.error('❌ Error initializing Facebook SDK:', error);
           setIsSdkLoaded(false); // Set to false on error
           setSdkFailed(true);
+          if (timeoutId) clearTimeout(timeoutId);
         }
       };
 
-      // Add timeout fallback
-      setTimeout(() => {
-        if (!isSdkLoaded) {
-          console.log('⚠️ Facebook SDK timeout - proceeding without Facebook');
-          setIsSdkLoaded(false);
-          setSdkFailed(true);
-        }
+      // Add timeout fallback - no dependency on isSdkLoaded state
+      timeoutId = setTimeout(() => {
+        console.log('⚠️ Facebook SDK timeout - proceeding without Facebook');
+        setIsSdkLoaded(false);
+        setSdkFailed(true);
       }, 5000); // 5 second timeout
 
       // Load the SDK
@@ -66,6 +70,7 @@ function FacebookLogin({ onLogin }) {
           console.error('❌ Failed to load Facebook SDK script');
           setIsSdkLoaded(false); // Allow app to continue without Facebook
           setSdkFailed(true);
+          if (timeoutId) clearTimeout(timeoutId);
         };
         
         fjs.parentNode.insertBefore(js, fjs);
@@ -73,6 +78,11 @@ function FacebookLogin({ onLogin }) {
     };
 
     loadFacebookSDK();
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   const handleLogin = () => {
