@@ -23,32 +23,32 @@ const ChatBox = ({ user }) => {
 
   // Fetch message history when chat is opened
   useEffect(() => {
+    const loadMessageHistory = async () => {
+      try {
+        setIsLoading(true);
+        const response = await chatService.fetchMessageHistory(user.psid);
+        console.log('Message history loaded:', response);
+        if (response.messages) {
+          setMessages(response.messages);
+        }
+      } catch (error) {
+        console.error('Failed to load message history:', error);
+        // Show error in UI
+        setMessages([{
+          id: 'error',
+          text: 'Failed to load messages. Please try again later.',
+          sender: 'system',
+          timestamp: new Date().toISOString()
+        }]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (isOpen && isAuthenticated) {
       loadMessageHistory();
     }
-  }, [isOpen, isAuthenticated]);
-
-  const loadMessageHistory = async () => {
-    try {
-      setIsLoading(true);
-      const response = await chatService.fetchMessageHistory(user.psid);
-      console.log('Message history loaded:', response);
-      if (response.messages) {
-        setMessages(response.messages);
-      }
-    } catch (error) {
-      console.error('Failed to load message history:', error);
-      // Show error in UI
-      setMessages([{
-        id: 'error',
-        text: 'Failed to load messages. Please try again later.',
-        sender: 'system',
-        timestamp: new Date().toISOString()
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [isOpen, isAuthenticated, user.psid]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

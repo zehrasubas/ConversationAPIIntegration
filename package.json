@@ -4,7 +4,6 @@
   "description": "Candle shop with Facebook integration on Vercel",
   "scripts": {
     "dev": "vercel dev",
-    "build": "cd client && npm install && npm run build",
     "deploy": "vercel --prod"
   },
   "keywords": ["facebook", "messenger", "vercel", "serverless"],
