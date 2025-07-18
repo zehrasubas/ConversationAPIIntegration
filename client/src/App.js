@@ -4,6 +4,7 @@ import ChatBox from './components/ChatBox';
 
 function FacebookLogin({ onLogin }) {
   const [isSdkLoaded, setIsSdkLoaded] = React.useState(false);
+  const [sdkFailed, setSdkFailed] = React.useState(false);
 
   React.useEffect(() => {
     // Load the Facebook SDK
@@ -30,8 +31,19 @@ function FacebookLogin({ onLogin }) {
           
         } catch (error) {
           console.error('❌ Error initializing Facebook SDK:', error);
+          setIsSdkLoaded(false); // Set to false on error
+          setSdkFailed(true);
         }
       };
+
+      // Add timeout fallback
+      setTimeout(() => {
+        if (!isSdkLoaded) {
+          console.log('⚠️ Facebook SDK timeout - proceeding without Facebook');
+          setIsSdkLoaded(false);
+          setSdkFailed(true);
+        }
+      }, 5000); // 5 second timeout
 
       // Load the SDK
       (function(d, s, id) {
@@ -52,6 +64,8 @@ function FacebookLogin({ onLogin }) {
         
         js.onerror = function() {
           console.error('❌ Failed to load Facebook SDK script');
+          setIsSdkLoaded(false); // Allow app to continue without Facebook
+          setSdkFailed(true);
         };
         
         fjs.parentNode.insertBefore(js, fjs);
@@ -86,15 +100,21 @@ function FacebookLogin({ onLogin }) {
     });
   };
 
+  const getButtonText = () => {
+    if (sdkFailed) return 'Facebook Login Unavailable';
+    if (isSdkLoaded) return 'Login with Facebook';
+    return 'Loading Facebook...';
+  };
+
   return (
     <button 
       className="fb-login-btn" 
       onClick={handleLogin}
-      disabled={!isSdkLoaded}
+      disabled={!isSdkLoaded || sdkFailed}
       style={{ 
-        cursor: isSdkLoaded ? 'pointer' : 'not-allowed',
-        opacity: isSdkLoaded ? 1 : 0.7,
-        backgroundColor: '#4267B2',
+        cursor: (isSdkLoaded && !sdkFailed) ? 'pointer' : 'not-allowed',
+        opacity: (isSdkLoaded && !sdkFailed) ? 1 : 0.7,
+        backgroundColor: sdkFailed ? '#999' : '#4267B2',
         color: 'white',
         border: 'none',
         padding: '8px 16px',
@@ -106,7 +126,7 @@ function FacebookLogin({ onLogin }) {
       }}
     >
       <i className="fab fa-facebook-f"></i> 
-      {isSdkLoaded ? 'Login with Facebook' : 'Loading Facebook...'}
+      {getButtonText()}
     </button>
   );
 }
