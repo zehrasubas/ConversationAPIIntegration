@@ -1,0 +1,19 @@
+{
+  "name": "candle-shop",
+  "version": "1.0.0",
+  "description": "Candle shop with Facebook integration on Vercel",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "cd client && npm run build",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["facebook", "messenger", "vercel", "serverless"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

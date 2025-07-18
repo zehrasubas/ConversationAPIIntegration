@@ -1,0 +1,395 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: #333;
+  line-height: 1.6;
+}
+
+.App {
+  min-height: 100vh;
+  background-color: #fff;
+}
+
+/* Navigation */
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: white;
+  border-bottom: 1px solid #eee;
+}
+
+.nav-left, .nav-right {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.nav-left a {
+  text-decoration: none;
+  color: #333;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nav-left a.active {
+  border-bottom: 1px solid #333;
+}
+
+.logo {
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 300;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #333;
+}
+
+.nav-right a, .nav-right button {
+  color: #333;
+  text-decoration: none;
+}
+
+/* Blog Hero Section */
+.blog-hero {
+  height: 70vh;
+  background: #8B7355;  /* A warm brown color as placeholder */
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  position: relative;
+}
+
+.blog-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content .subtitle {
+  display: block;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.hero-content h2 {
+  font-size: 3.5rem;
+  font-weight: 300;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* News Section */
+.news-section {
+  padding: 4rem 2rem;
+}
+
+.news-section h2 {
+  font-size: 2rem;
+  font-weight: 300;
+  margin-bottom: 2rem;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.news-card {
+  background: white;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.news-card:hover {
+  transform: translateY(-5px);
+}
+
+.news-card img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.news-content {
+  padding: 1.5rem;
+}
+
+.news-content h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.news-content p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .nav-container {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .nav-left, .nav-right {
+    gap: 1rem;
+  }
+  
+  .hero-content h2 {
+    font-size: 2.5rem;
+  }
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background: #f7d9c4;
+  padding: 2rem 1rem 1rem 1rem;
+  border-bottom: 2px solid #f3c295;
+}
+
+.App-header h1 {
+  font-family: 'Georgia', serif;
+  color: #a0522d;
+  margin-bottom: 0.5rem;
+}
+
+.App-header p {
+  color: #7c4a03;
+  margin-bottom: 1.5rem;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fb-login-btn {
+  background: #1877f2;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.fb-login-btn:hover {
+  background: #1464cf;
+}
+
+.fb-login-btn i {
+  font-size: 1rem;
+}
+
+.user-info,
+.logout-btn {
+  display: none;
+}
+
+.products {
+  padding: 2rem 1rem;
+}
+
+.products h2 {
+  color: #a0522d;
+  margin-bottom: 1.5rem;
+}
+
+.product-list {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.product-card {
+  background: #fff;
+  border: 1px solid #f3c295;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(160, 82, 45, 0.08);
+  padding: 1rem;
+  width: 200px;
+  text-align: center;
+  transition: box-shadow 0.2s;
+}
+
+.product-card:hover {
+  box-shadow: 0 4px 16px rgba(160, 82, 45, 0.15);
+}
+
+.product-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+/* Messenger chat bubble is handled by Facebook plugin, but ensure it doesn't overlap */
+.fb-customerchat {
+  z-index: 1000;
+}
+
+.fb-customerchat iframe {
+  background: white !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Ensure chat doesn't overlap with other elements */
+@media screen and (max-width: 768px) {
+  .fb-customerchat {
+    margin-bottom: 60px;
+  }
+}
+
+/* Add a subtle animation to the chat bubble */
+@keyframes chatBubbleEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fb-customerchat.fb_iframe_widget {
+  animation: chatBubbleEnter 0.3s ease-out;
+}
+
+.news-image-placeholder {
+  width: 100%;
+  height: 250px;
+  background: #A89078;  /* A lighter warm brown color */
+}
+
+/* Update nav-right styles */
+.nav-right {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.page-selection {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.page-selection h3 {
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.page-select-btn {
+  background: #f0f2f5;
+  border: none;
+  padding: 0.8rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #333;
+  transition: background-color 0.2s;
+  text-align: left;
+}
+
+.page-select-btn:hover {
+  background: #e4e6eb;
+}
+
+.error-message {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 10px 0;
+  font-size: 0.9rem;
+  border: 1px solid #ffcdd2;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  margin: 0 10px;
+}
+
+.user-name {
+  color: #333;
+  font-size: 14px;
+  margin-right: 10px;
+}
+
+.logout-btn:hover {
+  background-color: #365899 !important;
+  transition: background-color 0.2s ease;
+}
