@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import ChatBox from './components/ChatBox';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
+import Footer from './components/Footer';
 
 function FacebookLogin({ onLogin }) {
   const [isSdkLoaded, setIsSdkLoaded] = React.useState(false);
@@ -14,11 +17,12 @@ function FacebookLogin({ onLogin }) {
       console.log('🔄 Starting Facebook SDK load...');
       
       window.fbAsyncInit = function() {
-        console.log('🔄 fbAsyncInit called');
+        console.log('🔄 fbAsyncInit called - SDK is initializing');
         
         try {
+          console.log('🔧 Attempting to initialize with App ID: 30902396742455');
           window.FB.init({
-            appId: '30902396742455', // Replace with your actual Facebook App ID from Developer Console
+            appId: '30902396742455',
             cookie: true,
             xfbml: true,
             version: 'v19.0'
@@ -32,15 +36,21 @@ function FacebookLogin({ onLogin }) {
           // Test if FB is working
           window.FB.getLoginStatus(function(response) {
             console.log('📊 FB Login Status:', response);
+            console.log('📊 FB Auth Response:', response.authResponse);
+            console.log('📊 FB Status:', response.status);
           });
           
         } catch (error) {
           console.error('❌ Error initializing Facebook SDK:', error);
-          setIsSdkLoaded(false); // Set to false on error
+          console.error('❌ Error details:', error.message);
+          setIsSdkLoaded(false);
           setSdkFailed(true);
           if (timeoutId) clearTimeout(timeoutId);
         }
       };
+
+      // Add a check to see if fbAsyncInit is being called at all
+      console.log('🔧 Setting up fbAsyncInit function...');
 
       // Add timeout fallback - no dependency on isSdkLoaded state
       timeoutId = setTimeout(() => {
@@ -232,6 +242,7 @@ function NewsSection() {
 
 function App() {
   const [user, setUser] = useState(null);
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
   useEffect(() => {
     // Check if user is stored in localStorage
@@ -239,6 +250,14 @@ function App() {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+
+    // Listen for navigation changes
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const handleFacebookLogin = async (userInfo) => {
@@ -316,6 +335,36 @@ function App() {
     }
   };
 
+  // Check if we're on privacy policy page
+  if (currentPath === '/privacy') {
+    return (
+      <div className="App">
+        <Navigation 
+          user={user} 
+          onLogout={handleLogout}
+          onLogin={handleFacebookLogin}
+        />
+        <PrivacyPolicy />
+        <Footer />
+      </div>
+    );
+  }
+
+  // Check if we're on terms of service page
+  if (currentPath === '/terms') {
+    return (
+      <div className="App">
+        <Navigation 
+          user={user} 
+          onLogout={handleLogout}
+          onLogin={handleFacebookLogin}
+        />
+        <TermsOfService />
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       <Navigation 
@@ -328,6 +377,7 @@ function App() {
         <BlogHero />
         <NewsSection />
       </main>
+      <Footer />
     </div>
   );
 }
