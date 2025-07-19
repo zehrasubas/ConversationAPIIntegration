@@ -18,6 +18,9 @@ function FacebookLogin({ onLogin }) {
       
       window.fbAsyncInit = function() {
         console.log('🔄 fbAsyncInit called - SDK is initializing');
+        console.log('🌐 Current domain:', window.location.hostname);
+        console.log('🌐 Current URL:', window.location.href);
+        console.log('🌐 Current protocol:', window.location.protocol);
         
         try {
           console.log('🔧 Attempting to initialize with App ID: 30902396742455');
@@ -28,6 +31,11 @@ function FacebookLogin({ onLogin }) {
             version: 'v19.0'
           });
           console.log('✅ Facebook SDK initialized successfully');
+          
+          // Check if FB is actually working
+          console.log('🔍 Testing FB object:', typeof window.FB);
+          console.log('🔍 FB.getLoginStatus exists:', typeof window.FB.getLoginStatus);
+          
           setIsSdkLoaded(true);
           
           // Clear timeout since SDK loaded successfully
@@ -54,10 +62,13 @@ function FacebookLogin({ onLogin }) {
 
       // Add timeout fallback - no dependency on isSdkLoaded state
       timeoutId = setTimeout(() => {
-        console.log('⚠️ Facebook SDK timeout - proceeding without Facebook');
+        console.log('⚠️ Facebook SDK timeout after 8 seconds');
+        console.log('⚠️ fbAsyncInit was called:', typeof window.fbAsyncInit === 'function');
+        console.log('⚠️ FB object exists:', typeof window.FB !== 'undefined');
+        console.log('⚠️ SDK script loaded:', !!document.getElementById('facebook-jssdk'));
         setIsSdkLoaded(false);
         setSdkFailed(true);
-      }, 5000); // 5 second timeout
+      }, 8000); // 8 second timeout for better debugging
 
       // Load the SDK
       (function(d, s, id) {
@@ -74,6 +85,37 @@ function FacebookLogin({ onLogin }) {
         // Add load and error event listeners
         js.onload = function() {
           console.log('✅ Facebook SDK script loaded successfully');
+          console.log('✅ Waiting for fbAsyncInit to be called...');
+          
+          // Add a backup check in case fbAsyncInit doesn't fire
+          setTimeout(() => {
+            if (typeof window.FB !== 'undefined' && typeof window.FB.init === 'function') {
+              console.log('🔄 FB object available, checking if already initialized...');
+              // Check if FB is already initialized by testing a method
+              try {
+                window.FB.getLoginStatus(function(response) {
+                  console.log('✅ FB already initialized, status:', response.status);
+                  setIsSdkLoaded(true);
+                  if (timeoutId) clearTimeout(timeoutId);
+                });
+              } catch (error) {
+                console.log('🔄 FB not initialized, trying manual init');
+                try {
+                  window.FB.init({
+                    appId: '30902396742455',
+                    cookie: true,
+                    xfbml: true,
+                    version: 'v19.0'
+                  });
+                  console.log('✅ Manual Facebook SDK initialization successful');
+                  setIsSdkLoaded(true);
+                  if (timeoutId) clearTimeout(timeoutId);
+                } catch (initError) {
+                  console.error('❌ Manual initialization failed:', initError);
+                }
+              }
+            }
+          }, 2000);
         };
         
         js.onerror = function() {
