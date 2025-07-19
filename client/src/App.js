@@ -18,7 +18,7 @@ function FacebookLogin({ onLogin }) {
         
         try {
           window.FB.init({
-            appId: '32902521059386', // Your app ID - if this fails, try '1234567890123456'
+            appId: '30902396742455', // Replace with your actual Facebook App ID from Developer Console
             cookie: true,
             xfbml: true,
             version: 'v19.0'
@@ -105,7 +105,7 @@ function FacebookLogin({ onLogin }) {
     }, {
       scope: 'email,pages_messaging,pages_show_list,public_profile',
       return_scopes: true,
-      messenger_page_id: '29202387465526',
+      messenger_page_id: '29202387465526', // Replace with your Facebook Page ID
       auth_type: 'rerequest'
     });
   };
