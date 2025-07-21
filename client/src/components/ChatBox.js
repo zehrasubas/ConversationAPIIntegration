@@ -24,40 +24,9 @@ const ChatBox = ({ user }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Fetch message history when chat is opened
-  useEffect(() => {
-    const loadMessageHistory = async () => {
-      // Only try to load history if user has PSID (Messenger integration)
-      if (!hasMessengerIntegration) {
-        console.log('ℹ️ No Messenger integration yet - starting fresh conversation');
-        return;
-      }
-      
-      try {
-        setIsLoading(true);
-        const response = await chatService.fetchMessageHistory(user.psid);
-        console.log('Message history loaded:', response);
-        if (response?.messages) {
-          setMessages(response.messages);
-        }
-      } catch (error) {
-        console.error('Failed to load message history:', error);
-        // Show error in UI
-        setMessages([{
-          id: 'error',
-          text: 'Failed to load messages. Please try again later.',
-          sender: 'system',
-          timestamp: new Date().toISOString()
-        }]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (isOpen && isAuthenticated) {
-      loadMessageHistory();
-    }
-  }, [isOpen, isAuthenticated, hasMessengerIntegration, user?.psid]);
+  // Fetch message history when chat is opened - COMMENTED OUT until Messenger setup
+  // NOTE: Disabled until PAGE_ACCESS_TOKEN and Messenger Platform are configured
+  console.log('ℹ️ Message history loading disabled until Messenger Platform setup complete');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -117,10 +86,16 @@ const ChatBox = ({ user }) => {
       }
 
       // Send message to backend (which will try to send to Messenger)
+      console.log('📤 Sending message to backend - Messenger Platform setup pending...');
       const response = await chatService.sendMessage(inputMessage, userPSID || user.id);
 
       console.log('Message sent successfully:', response);
       
+      // Show status in UI based on response
+      if (response?.status === 'local_only') {
+        console.log('💾 Message stored locally only - Messenger Platform not configured yet');
+      }
+
       // Update message status
       setMessages(prev => prev.map(msg => 
         msg.id === newMessage.id 

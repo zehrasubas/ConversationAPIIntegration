@@ -40,8 +40,8 @@ const sendMessage = async (message, psid) => {
       throw new Error('Message and PSID are required');
     }
     
-    // First, ensure we have an active conversation
-    await initializeConversation(psid);
+    // COMMENTED OUT - Initialize conversation after Messenger Platform setup
+    // await initializeConversation(psid);
 
     const response = await fetch(`${BASE_URL}/api/messages/send`, {
       method: 'POST',
