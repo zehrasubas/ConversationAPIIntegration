@@ -102,6 +102,11 @@ export default async function handler(req, res) {
 
     // For Messenger Platform, userId should be the PSID
     const psid = userId;
+    
+    console.log('🔍 Debug Info:');
+    console.log('- PSID being used:', psid);
+    console.log('- PAGE_ACCESS_TOKEN present:', !!process.env.PAGE_ACCESS_TOKEN);
+    console.log('- PAGE_ID from env:', process.env.PAGE_ID);
 
     try {
       // Send to Facebook Messenger Platform
