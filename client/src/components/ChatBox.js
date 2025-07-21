@@ -9,8 +9,11 @@ const ChatBox = ({ user }) => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Check if user is properly authenticated with PSID
-  const isAuthenticated = Boolean(user?.psid);
+  // Check if user is logged in (basic auth, not requiring PSID)
+  const isAuthenticated = Boolean(user?.id);
+  
+  // Check if Messenger integration is available
+  const hasMessengerIntegration = Boolean(user?.psid);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -24,8 +27,9 @@ const ChatBox = ({ user }) => {
   // Fetch message history when chat is opened
   useEffect(() => {
     const loadMessageHistory = async () => {
-      if (!user?.psid) {
-        console.warn('No PSID available for loading message history');
+      // Only try to load history if user has PSID (Messenger integration)
+      if (!hasMessengerIntegration) {
+        console.log('ℹ️ No Messenger integration yet - starting fresh conversation');
         return;
       }
       
@@ -50,10 +54,10 @@ const ChatBox = ({ user }) => {
       }
     };
 
-    if (isOpen && isAuthenticated && user?.psid) {
+    if (isOpen && isAuthenticated) {
       loadMessageHistory();
     }
-  }, [isOpen, isAuthenticated, user?.psid]);
+  }, [isOpen, isAuthenticated, hasMessengerIntegration, user?.psid]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,29 +76,75 @@ const ChatBox = ({ user }) => {
     setInputMessage('');
 
     try {
-      // Send message to backend
-      if (!user?.psid) {
-        throw new Error('No PSID available for sending message');
+      let userPSID = user?.psid;
+      
+      // If no PSID yet, try to get one (on-demand Messenger integration)
+      if (!userPSID && user?.id) {
+        console.log('🔄 First message - attempting Messenger integration...');
+        try {
+          const response = await fetch('/api/exchange-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user.id
+            })
+          });
+
+          const data = await response.json();
+          console.log('📬 PSID Exchange Response:', data);
+          
+          if (data?.success && data?.psid) {
+            userPSID = data.psid;
+            console.log('✅ Messenger integration activated:', userPSID);
+            
+            // Update user data with PSID for future messages
+            const userWithPSID = {
+              ...user,
+              psid: userPSID,
+              messengerEnabled: true
+            };
+            localStorage.setItem('user', JSON.stringify(userWithPSID));
+            // Note: Not updating React state during message send to avoid complexity
+          } else {
+            console.log('⚠️ Messenger integration not available - using local chat only');
+          }
+        } catch (error) {
+          console.error('❌ Error during Messenger integration:', error);
+          console.log('📝 Continuing with local chat only');
+        }
       }
       
-      const response = await chatService.sendMessage(inputMessage, user.psid);
-      console.log('Message sent successfully:', response);
-      
-      // Update message status on success
-      setMessages(prev => prev.map(msg => 
-        msg.id === newMessage.id 
-          ? { ...msg, status: 'sent', id: response.messageId } 
-          : msg
-      ));
+      // Send message (with or without Messenger integration)
+      if (userPSID) {
+        const response = await chatService.sendMessage(inputMessage, userPSID);
+        console.log('Message sent successfully:', response);
+        
+        // Update message status on success
+        setMessages(prev => prev.map(msg => 
+          msg.id === newMessage.id 
+            ? { ...msg, status: 'sent', id: response.messageId } 
+            : msg
+        ));
 
-      // If there's an immediate response from the business
-      if (response.reply) {
-        setMessages(prev => [...prev, {
-          id: response.reply.id,
-          text: response.reply.text,
-          sender: 'business',
-          timestamp: new Date().toISOString()
-        }]);
+        // If there's an immediate response from the business
+        if (response.reply) {
+          setMessages(prev => [...prev, {
+            id: response.reply.id,
+            text: response.reply.text,
+            sender: 'business',
+            timestamp: new Date().toISOString()
+          }]);
+        }
+      } else {
+        // Local-only message (no Messenger integration)
+        console.log('📝 Message stored locally only - no Messenger integration');
+        setMessages(prev => prev.map(msg => 
+          msg.id === newMessage.id 
+            ? { ...msg, status: 'local_only' } 
+            : msg
+        ));
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -139,6 +189,11 @@ const ChatBox = ({ user }) => {
                 Please log in with Facebook to start chatting
               </div>
             )}
+            {isAuthenticated && !hasMessengerIntegration && (
+              <div className="login-prompt">
+                Send a message to activate Messenger integration
+              </div>
+            )}
           </div>
 
           {/* Messages Area */}
@@ -164,6 +219,7 @@ const ChatBox = ({ user }) => {
                       {formatTime(message.timestamp)}
                       {message.status === 'sending' && ' • Sending...'}
                       {message.status === 'failed' && ' • Failed'}
+                      {message.status === 'local_only' && ' • Local chat'}
                     </div>
                   </div>
                 ))}

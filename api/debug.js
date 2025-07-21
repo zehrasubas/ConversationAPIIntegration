@@ -11,6 +11,7 @@ export default async function handler(req, res) {
     const baseUrl = `${protocol}://${host}`;
 
     const debugInfo = {
+      deploymentCheck: "DEPLOYMENT_TEST_2024_" + Date.now(),
       timestamp: new Date().toISOString(),
       domain: host,
       baseUrl: baseUrl,
@@ -34,8 +35,9 @@ export default async function handler(req, res) {
         setSiteUrl: baseUrl
       },
       
-      // Current Login Scope (simplified)
+      // Current Login Scope (basic, safe approach)
       loginScope: ['public_profile', 'email'],
+      messengerIntegration: 'Available on-demand when user sends first message',
       
       // Quick Setup Steps
       setupSteps: [

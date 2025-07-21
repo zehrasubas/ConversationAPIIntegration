@@ -160,10 +160,8 @@ function FacebookLogin({ onLogin }) {
         console.log('User cancelled login or did not fully authorize.');
       }
     }, {
-      scope: 'email,pages_messaging,pages_show_list,public_profile',
-      return_scopes: true,
-      messenger_page_id: '29202387465526', // Replace with your Facebook Page ID
-      auth_type: 'rerequest'
+      scope: 'public_profile,email',
+      return_scopes: true
     });
   };
 
@@ -336,14 +334,13 @@ function App() {
     console.log('📧 User Email:', userInfo?.email);
     console.log('👤 User Name:', userInfo?.name);
     
-    // Store the basic user info
+    // Store basic user info - keep login simple and fast
     console.log('💾 Storing user info in localStorage...');
     localStorage.setItem('user', JSON.stringify(userInfo));
-    
-    console.log('🔄 Updating user state...');
     setUser(userInfo);
     
-    console.log('🎉 Login completed - user should now appear in navigation!');
+    console.log('🎉 Login completed successfully!');
+    console.log('📝 Messenger integration available - will activate when user sends first message');
   };
 
   const handleLogout = () => {

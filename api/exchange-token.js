@@ -1,4 +1,4 @@
-// Exchange Token API Endpoint for Vercel
+// Exchange Token API Endpoint for Messenger Platform Integration
 const fetch = require('node-fetch');
 
 export default async function handler(req, res) {
@@ -9,9 +9,8 @@ export default async function handler(req, res) {
 
   try {
     const { userId } = req.body;
-    console.log('🔄 Exchange token request:', {
+    console.log('🔄 PSID Exchange request:', {
       userId,
-      headers: req.headers,
       timestamp: new Date().toISOString()
     });
     
@@ -19,15 +18,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'userId is required' });
     }
 
-    // In Facebook's Messenger Platform, we need to verify if this user can message the page
-    // and get their PSID for messaging
-    console.log('📱 Attempting to verify user with Facebook...');
-    const psid = userId;
+    // Check if required environment variables are set
+    if (!process.env.PAGE_ACCESS_TOKEN) {
+      console.error('❌ PAGE_ACCESS_TOKEN not configured');
+      return res.status(500).json({ 
+        error: 'Messenger Platform not configured', 
+        details: 'PAGE_ACCESS_TOKEN missing' 
+      });
+    }
 
-    // Verify the user exists and can message the page
+    console.log('🔑 Using Page Access Token:', process.env.PAGE_ACCESS_TOKEN ? '✓ Present' : '❌ Missing');
+    
+    // For Messenger Platform, the Facebook User ID can be used as PSID
+    // But we need to verify the user exists and can receive messages
     try {
-      console.log('🔑 Using Page Access Token:', process.env.PAGE_ACCESS_TOKEN ? '✓ Present' : '❌ Missing');
-      
       const response = await fetch(
         `https://graph.facebook.com/v19.0/${userId}?access_token=${process.env.PAGE_ACCESS_TOKEN}`,
         {
@@ -47,26 +51,45 @@ export default async function handler(req, res) {
           error: responseData.error,
           userId: userId
         });
-        throw new Error(`Failed to verify user with Facebook: ${responseData.error?.message || 'Unknown error'}`);
+        
+        // If user verification fails, still provide PSID but mark as unverified
+        console.log('⚠️ User verification failed, providing unverified PSID');
+        return res.json({ 
+          success: true,
+          psid: userId,
+          verified: false,
+          note: 'User has not messaged the page yet - messaging will be limited'
+        });
       }
 
       const userData = responseData;
-      console.log('✅ Facebook user data:', userData);
+      console.log('✅ Facebook user verified:', userData);
 
+      // Successfully verified user - provide PSID
       res.json({ 
         success: true,
-        psid: psid,
-        user: userData
+        psid: userId,
+        user: userData,
+        verified: true,
+        note: 'User verified and ready for messaging'
       });
+      
     } catch (fbError) {
-      console.error('Facebook API error:', fbError);
-      res.status(400).json({ 
-        error: 'Failed to verify user with Facebook',
+      console.error('❌ Facebook API error:', fbError.message);
+      
+      // Fallback: provide PSID anyway for basic functionality
+      console.log('📝 Providing fallback PSID despite verification error');
+      res.json({
+        success: true,
+        psid: userId,
+        verified: false,
+        error: 'Verification failed but PSID provided',
         details: fbError.message
       });
     }
+    
   } catch (error) {
-    console.error('Error exchanging token:', error);
+    console.error('❌ Exchange token error:', error);
     res.status(500).json({ 
       error: 'Failed to exchange token',
       details: error.message
