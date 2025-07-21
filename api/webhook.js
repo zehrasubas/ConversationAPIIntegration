@@ -61,53 +61,54 @@ async function sendToFacebook(recipientId, text) {
 }
 
 export default async function handler(req, res) {
-  console.log(`📨 ${req.method} request to webhook`, {
-    query: req.query,
-    body: req.method === 'POST' ? req.body : 'N/A'
-  });
-
   if (req.method === 'GET') {
-    // Webhook verification
-    console.log('Received webhook verification request');
-    console.log('Query parameters:', req.query);
-
+    // Webhook verification for Facebook
+    console.log('🔍 Webhook verification request received');
+    
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
+    
+    console.log('📋 Verification details:', {
+      mode,
+      token,
+      challenge,
+      expectedToken: process.env.VERIFY_TOKEN
+    });
 
-    if (mode && token) {
-      if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
-        console.log('✅ Webhook verified successfully');
-        res.status(200).send(challenge);
-      } else {
-        console.error('❌ Webhook verification failed');
-        console.error('Expected token:', process.env.VERIFY_TOKEN);
-        console.error('Received token:', token);
-        res.status(403).send('Forbidden');
-      }
+    // Check if mode and token are correct
+    if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
+      console.log('✅ Webhook verified successfully');
+      res.status(200).send(challenge);
     } else {
-      console.error('❌ Invalid webhook verification request');
-      console.error('Missing mode or token');
-      res.status(400).send('Bad Request');
+      console.error('❌ Webhook verification failed');
+      res.status(403).send('Forbidden');
     }
-  } else if (req.method === 'POST') {
-    // Webhook event handling
-    console.log('✅ Incoming webhook event:', JSON.stringify(req.body, null, 2));
-    console.log('📨 Headers:', JSON.stringify(req.headers, null, 2));
+    return;
+  }
 
-    const body = req.body;
+  if (req.method === 'POST') {
+    console.log('📬 Webhook event received');
+    console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('📦 Request headers:', JSON.stringify(req.headers, null, 2));
 
-    if (body.object === 'page') {
-      try {
-        console.log('✓ Verified page event');
-        // Handle each entry
-        for (const entry of body.entry) {
-          console.log('📝 Processing entry:', JSON.stringify(entry, null, 2));
-          // Handle each messaging event
-          for (const webhookEvent of entry.messaging) {
-            console.log('📩 Processing webhook event:', JSON.stringify(webhookEvent, null, 2));
-            console.log('🔑 Event type:', webhookEvent.message ? 'message' : webhookEvent.postback ? 'postback' : 'other');
+    try {
+      // Verify the webhook signature (recommended for production)
+      // const signature = req.headers['x-hub-signature-256'];
+      // You should implement signature verification here for security
 
+      if (req.body.object === 'page') {
+        req.body.entry.forEach(function(entry) {
+          console.log('🔄 Processing entry:', JSON.stringify(entry, null, 2));
+          
+          const pageId = entry.id;
+          const timeOfEvent = entry.time;
+          console.log('📄 Page ID:', pageId, 'Time:', new Date(timeOfEvent));
+
+                     // Iterate over each messaging event
+           entry.messaging?.forEach(async function(webhookEvent) {
+            console.log('💬 Processing messaging event:', JSON.stringify(webhookEvent, null, 2));
+            
             const senderId = webhookEvent.sender.id;
             console.log('👤 Sender ID:', senderId);
 
@@ -147,17 +148,17 @@ export default async function handler(req, res) {
               messageStore.addMessage(senderId, message);
               console.log('💾 Stored postback:', message);
             }
-          }
-        }
+          });
+        });
 
         res.status(200).send('EVENT_RECEIVED');
-      } catch (error) {
-        console.error('❌ Error processing webhook:', error);
-        res.status(500).send('ERROR_PROCESSING_WEBHOOK');
+      } else {
+        console.log('⚠️ Unhandled webhook object type:', req.body.object);
+        res.status(404).send('Not Found');
       }
-    } else {
-      console.error('❌ Invalid webhook event object:', body.object);
-      res.status(404).send('Not Found');
+    } catch (error) {
+      console.error('❌ Error processing webhook:', error);
+      res.status(500).send('ERROR_PROCESSING_WEBHOOK');
     }
   } else {
     res.setHeader('Allow', ['GET', 'POST']);

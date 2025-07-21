@@ -147,8 +147,13 @@ function FacebookLogin({ onLogin }) {
       console.log('Login response:', response);
       
       if (response.authResponse) {
+        console.log('✅ Login successful, getting user info...');
         window.FB.api('/me', { fields: 'id,name,email' }, function(userInfo) {
-          console.log('User info received:', userInfo);
+          console.log('👤 User info received from Facebook API:', userInfo);
+          console.log('👤 User ID:', userInfo.id);
+          console.log('👤 User Name:', userInfo.name);
+          console.log('📧 User Email:', userInfo.email);
+          console.log('🔄 Calling onLogin with userInfo...');
           onLogin(userInfo);
         });
       } else {
@@ -194,6 +199,11 @@ function FacebookLogin({ onLogin }) {
 }
 
 function Navigation({ user, onLogout, onLogin }) {
+  // Debug logging to see what user data we have
+  console.log('🔍 Navigation render - user:', user);
+  console.log('🔍 Navigation render - user type:', typeof user);
+  console.log('🔍 Navigation render - user name:', user?.name);
+  
   return (
     <nav className="nav-container">
       <div className="nav-left">
@@ -215,7 +225,7 @@ function Navigation({ user, onLogout, onLogin }) {
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ color: '#1c1e21', fontWeight: '500' }}>
-                Hi, {user.name}
+                Hi, {user.name || 'User'}
               </span>
               <button 
                 onClick={onLogout}
@@ -286,11 +296,29 @@ function App() {
   const [user, setUser] = useState(null);
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
+  // Debug user state changes
+  console.log('🏠 App render - current user state:', user);
+
+  // Track user state changes
+  useEffect(() => {
+    console.log('🔄 User state changed to:', user);
+    if (user) {
+      console.log('✅ User is now logged in:', user.name);
+    } else {
+      console.log('❌ User is not logged in');
+    }
+  }, [user]);
+
   useEffect(() => {
     // Check if user is stored in localStorage
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      console.log('📱 Found stored user in localStorage:', storedUser);
+      const parsedUser = JSON.parse(storedUser);
+      console.log('📱 Parsed stored user:', parsedUser);
+      setUser(parsedUser);
+    } else {
+      console.log('📱 No stored user found in localStorage');
     }
 
     // Listen for navigation changes
@@ -302,59 +330,20 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const handleFacebookLogin = async (userInfo) => {
-    console.log('Login successful:', userInfo);
-    console.log('Facebook User ID:', userInfo?.id);
+  const handleFacebookLogin = (userInfo) => {
+    console.log('✅ Facebook login successful:', userInfo);
+    console.log('👤 Facebook User ID:', userInfo?.id);
+    console.log('📧 User Email:', userInfo?.email);
+    console.log('👤 User Name:', userInfo?.name);
     
-    try {
-      // Get the Facebook User ID from the login response
-      const facebookUserId = userInfo?.id;
-      
-      if (!facebookUserId) {
-        console.error('No user ID received from Facebook');
-        return;
-      }
-      
-      // Exchange Facebook User ID for PSID through our server
-      const response = await fetch('/api/exchange-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: facebookUserId
-        })
-      });
-
-      const data = await response.json();
-      console.log('PSID Exchange Response:', data);
-      
-      if (data?.success && data?.psid) {
-        console.log('Received PSID:', data.psid);
-        console.log('Messenger Profile:', data.profile);
-        console.log('User Data:', data.user);
-
-        // Store both user info and PSID
-        const userWithPSID = {
-          ...userInfo,
-          psid: data.psid
-        };
-        
-        console.log('Storing user with PSID:', userWithPSID);
-        localStorage.setItem('user', JSON.stringify(userWithPSID));
-        setUser(userWithPSID);
-      } else {
-        console.error('Failed to get PSID:', data.error);
-        // Still store the user info even if PSID exchange fails
-        localStorage.setItem('user', JSON.stringify(userInfo));
-        setUser(userInfo);
-      }
-    } catch (error) {
-      console.error('Error exchanging Facebook ID for PSID:', error);
-      // Still store the user info even if PSID exchange fails
-      localStorage.setItem('user', JSON.stringify(userInfo));
-      setUser(userInfo);
-    }
+    // Store the basic user info
+    console.log('💾 Storing user info in localStorage...');
+    localStorage.setItem('user', JSON.stringify(userInfo));
+    
+    console.log('🔄 Updating user state...');
+    setUser(userInfo);
+    
+    console.log('🎉 Login completed - user should now appear in navigation!');
   };
 
   const handleLogout = () => {
