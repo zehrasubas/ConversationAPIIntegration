@@ -1,3 +1,7 @@
+// COMMENTED OUT - Messenger Platform Integration
+// This file is part of the Messenger Platform integration that is currently disabled
+
+/*
 // Send Message API Endpoint for Messenger Platform
 const fetch = require('node-fetch');
 
@@ -70,28 +74,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, userId: psid } = req.body;
-    
-    console.log('📨 Received send message request:', {
-      message,
-      psid,
-      timestamp: new Date().toISOString()
-    });
-    
-    if (!message || !psid) {
-      return res.status(400).json({ error: 'Message and PSID are required' });
-    }
+    const { message, userId } = req.body;
+    console.log('📬 Send message request:', { message, userId });
 
-    // Check if Messenger Platform is configured
-    if (!process.env.PAGE_ACCESS_TOKEN) {
-      console.error('❌ PAGE_ACCESS_TOKEN not configured');
-      return res.status(500).json({ 
-        error: 'Messenger Platform not configured',
-        details: 'PAGE_ACCESS_TOKEN missing'
-      });
+    if (!message || !userId) {
+      return res.status(400).json({ error: 'Message and userId are required' });
     }
-    
-    console.log('🔑 Using PSID for Messenger:', psid);
 
     // Store message locally first
     const newMessage = {
@@ -99,10 +87,25 @@ export default async function handler(req, res) {
       text: message,
       sender: 'user',
       timestamp: new Date().toISOString(),
-      psid: psid
+      userId: userId
     };
-    messageStore.addMessage(psid, newMessage);
+
+    messageStore.addMessage(userId, newMessage);
     console.log('💾 Message stored locally:', newMessage);
+
+    // Check if Messenger Platform is configured
+    if (!process.env.PAGE_ACCESS_TOKEN) {
+      console.log('⚠️ PAGE_ACCESS_TOKEN not configured - storing message locally only');
+      return res.json({
+        success: true,
+        messageId: newMessage.id,
+        status: 'local_only',
+        note: 'Message stored locally - Messenger Platform not configured'
+      });
+    }
+
+    // For Messenger Platform, userId should be the PSID
+    const psid = userId;
 
     try {
       // Send to Facebook Messenger Platform
@@ -135,4 +138,13 @@ export default async function handler(req, res) {
       details: error.message 
     });
   }
+}
+*/
+
+// Temporary disabled endpoint - returns error
+export default async function handler(req, res) {
+  return res.status(503).json({ 
+    error: 'Messenger integration temporarily disabled',
+    note: 'This endpoint is part of the Messenger Platform integration that is currently commented out'
+  });
 } 

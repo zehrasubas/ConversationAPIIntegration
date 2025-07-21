@@ -143,45 +143,26 @@ function FacebookLogin({ onLogin }) {
       return;
     }
 
-    // First, completely reset Facebook session state
-    console.log('🔄 Resetting Facebook session state...');
-    try {
-      if (typeof window.FB !== 'undefined') {
-        // Clear any existing auth state
-        window.FB.logout(function() {
-          console.log('🧹 Cleared existing Facebook session');
+    window.FB.login(function(response) {
+      console.log('Login response:', response);
+      
+      if (response.authResponse) {
+        console.log('✅ Login successful, getting user info...');
+        window.FB.api('/me', { fields: 'id,name,email' }, function(userInfo) {
+          console.log('👤 User info received from Facebook API:', userInfo);
+          console.log('👤 User ID:', userInfo.id);
+          console.log('👤 User Name:', userInfo.name);
+          console.log('📧 User Email:', userInfo.email);
+          console.log('🔄 Calling onLogin with userInfo...');
+          onLogin(userInfo);
         });
+      } else {
+        console.log('User cancelled login or did not fully authorize.');
       }
-    } catch (error) {
-      console.log('🟡 No existing session to clear:', error.message);
-    }
-
-    // Small delay to ensure logout completes
-    setTimeout(() => {
-      console.log('🚀 Starting fresh Facebook login...');
-      window.FB.login(function(response) {
-        console.log('Login response:', response);
-        
-        if (response.authResponse) {
-          console.log('✅ Login successful, getting user info...');
-          window.FB.api('/me', { fields: 'id,name,email' }, function(userInfo) {
-            console.log('👤 User info received from Facebook API:', userInfo);
-            console.log('👤 User ID:', userInfo.id);
-            console.log('👤 User Name:', userInfo.name);
-            console.log('📧 User Email:', userInfo.email);
-            console.log('🔄 Calling onLogin with userInfo...');
-            onLogin(userInfo);
-          });
-        } else {
-          console.log('User cancelled login or did not fully authorize.');
-          console.log('Response details:', response);
-        }
-      }, {
-        scope: 'public_profile,email',
-        return_scopes: true,
-        auth_type: 'rerequest' // Force fresh permission request
-      });
-    }, 500);
+    }, {
+      scope: 'public_profile,email',
+      return_scopes: true
+    });
   };
 
   const getButtonText = () => {
@@ -354,13 +335,12 @@ function App() {
     console.log('📧 User Email:', userInfo?.email);
     console.log('👤 User Name:', userInfo?.name);
     
-    // Store basic user info - keep login simple and fast
+    // Store user info in localStorage
     console.log('💾 Storing user info in localStorage...');
     localStorage.setItem('user', JSON.stringify(userInfo));
     setUser(userInfo);
     
     console.log('🎉 Login completed successfully!');
-    console.log('📝 Messenger integration available - will activate when user sends first message');
   };
 
   const handleLogout = () => {

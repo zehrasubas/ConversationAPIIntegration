@@ -1,3 +1,7 @@
+// COMMENTED OUT - Messenger Platform Integration
+// This file is part of the Messenger Platform integration that is currently disabled
+
+/*
 // Exchange Token API Endpoint for Messenger Platform Integration
 const fetch = require('node-fetch');
 
@@ -89,10 +93,19 @@ export default async function handler(req, res) {
     }
     
   } catch (error) {
-    console.error('❌ Exchange token error:', error);
-    res.status(500).json({ 
-      error: 'Failed to exchange token',
+    console.error('❌ Error in exchange-token endpoint:', error);
+    res.status(500).json({
+      error: 'Internal server error',
       details: error.message
     });
   }
+}
+*/
+
+// Temporary disabled endpoint - returns error
+export default async function handler(req, res) {
+  return res.status(503).json({ 
+    error: 'Messenger integration temporarily disabled',
+    note: 'This endpoint is part of the Messenger Platform integration that is currently commented out'
+  });
 } 
