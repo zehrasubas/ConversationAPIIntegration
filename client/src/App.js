@@ -228,7 +228,7 @@ function Navigation({ user, onLogout, onLogin }) {
               <button 
                 onClick={onLogout}
                 style={{
-                  backgroundColor: '#2E86AB',
+                  backgroundColor: '#5DADE2',
                   color: 'white',
                   border: 'none',
                   padding: '8px 16px',

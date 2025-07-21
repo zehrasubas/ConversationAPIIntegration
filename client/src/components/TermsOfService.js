@@ -46,7 +46,7 @@ const TermsOfService = () => {
       </ul>
 
       <h2>5. Privacy</h2>
-      <p>Your privacy is important to us. Please review our <a href="/privacy" style={{ color: '#2E86AB' }}>Privacy Policy</a> for information about how we collect, use, and protect your travel data.</p>
+      <p>Your privacy is important to us. Please review our <a href="/privacy" style={{ color: '#5DADE2' }}>Privacy Policy</a> for information about how we collect, use, and protect your travel data.</p>
 
       <h2>6. Prohibited Uses</h2>
       <p>You may not use our service to:</p>

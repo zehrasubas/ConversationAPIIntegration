@@ -8,7 +8,7 @@ const Footer = () => {
 
   return (
     <footer style={{
-      background: 'linear-gradient(135deg, #2E86AB 0%, #A23B72 100%)',
+      background: 'linear-gradient(135deg, #5DADE2 0%, #2E86AB 100%)',
       color: 'white',
       padding: '40px 0 20px 0',
       marginTop: '40px',
