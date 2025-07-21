@@ -6,8 +6,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const host = req.headers.host;
+    const { headers } = req;
+    const host = headers.host;
+    const protocol = headers['x-forwarded-proto'] || 'https';
     const baseUrl = `${protocol}://${host}`;
 
     const debugInfo = {
@@ -15,89 +16,41 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString(),
       domain: host,
       baseUrl: baseUrl,
-      
-      // Facebook App Configuration for Login
       facebookLogin: {
         appId: '30902396742455',
-        status: '⚠️ Login issues detected',
-        
-        // What needs to be added to Facebook App
-        addToAppDomains: [
-          host,
-          'localhost'
-        ],
-        
-        addToRedirectUris: [
-          `${baseUrl}/`,
-          'http://localhost:3000/'
-        ],
-        
-        setSiteUrl: baseUrl
-      },
-      
-      // Current Login Scope (basic, safe approach)
-      loginScope: ['public_profile', 'email'],
-      messengerIntegration: 'Available on-demand when user sends first message',
-      
-      // Quick Setup Steps
-      setupSteps: [
-        {
-          step: 1,
-          action: 'Go to Facebook Developers Console',
-          url: 'https://developers.facebook.com/apps/',
-          details: 'Select App ID: 30902396742455'
-        },
-        {
-          step: 2,
-          action: 'Add App Domains',
-          location: 'Settings → Basic → App Domains',
-          value: host
-        },
-        {
-          step: 3,
-          action: 'Add OAuth Redirect URIs', 
-          location: 'Products → Facebook Login → Settings → Valid OAuth Redirect URIs',
-          value: `${baseUrl}/`
-        },
-        {
-          step: 4,
-          action: 'Set Site URL',
-          location: 'Products → Facebook Login → Settings → Site URL', 
-          value: baseUrl
-        },
-        {
-          step: 5,
-          action: 'Test Login',
-          details: 'Deploy app and test Facebook login button'
+        currentScope: ['public_profile', 'email'],
+        status: '⚠️ Login issues detected - Check Facebook App Configuration',
+        requiredSettings: {
+          appDomains: [host],
+          validOAuthRedirectURIs: [`${baseUrl}/`],
+          siteUrl: baseUrl,
+          appType: 'Consumer (recommended)',
+          appMode: 'Live (for production) or Development (for testing)'
         }
-      ],
-      
-      // Common Issues & Solutions
+      },
       troubleshooting: {
-        'User cancelled login or did not fully authorize': [
-          'Add your domain to App Domains in Facebook App',
-          'Add redirect URI to Facebook Login settings',
-          'If app is in Development Mode, add yourself as Test User',
-          'Clear browser cache and try again'
+        commonIssues: [
+          'App is in Development mode but user is not a test user/admin',
+          'Missing Facebook Login product in app',
+          'Invalid OAuth Redirect URIs',
+          'App Domains not configured',
+          'Basic permissions not approved',
+          'App needs to be switched to Live mode'
         ],
-        'Facebook SDK not loading': [
-          'Check browser console for script loading errors',
-          'Verify no ad blockers are interfering',
-          'Check network tab for failed requests'
-        ],
-        '401 errors on static files': [
-          'Updated vercel.json should fix this',
-          'Clear browser cache',
-          'Check if domain is correctly configured'
+        checkSteps: [
+          '1. Go to Facebook Developer Console',
+          '2. Check App Status (Live vs Development)',
+          '3. Verify Facebook Login product is added',
+          '4. Check Valid OAuth Redirect URIs',
+          '5. Verify App Domains',
+          '6. Review basic permissions approval'
         ]
       },
-      
-      // Test URLs
-      testEndpoints: {
-        debug: `${baseUrl}/api/debug`,
-        home: `${baseUrl}/`,
-        login: 'Click Facebook login button on homepage'
-      }
+      debugActions: [
+        `Visit: https://developers.facebook.com/apps/30902396742455/settings/basic/`,
+        `Check OAuth URIs: https://developers.facebook.com/apps/30902396742455/fb-login/settings/`,
+        `Review permissions: https://developers.facebook.com/apps/30902396742455/app-review/permissions/`
+      ]
     };
 
     res.json(debugInfo);

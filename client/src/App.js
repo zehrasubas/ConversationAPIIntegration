@@ -178,16 +178,7 @@ function FacebookLogin({ onLogin }) {
       disabled={!isSdkLoaded || sdkFailed}
       style={{ 
         cursor: (isSdkLoaded && !sdkFailed) ? 'pointer' : 'not-allowed',
-        opacity: (isSdkLoaded && !sdkFailed) ? 1 : 0.7,
-        backgroundColor: sdkFailed ? '#999' : '#4267B2',
-        color: 'white',
-        border: 'none',
-        padding: '8px 16px',
-        borderRadius: '4px',
-        fontSize: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
+        opacity: (isSdkLoaded && !sdkFailed) ? 1 : 0.7
       }}
     >
       <i className="fab fa-facebook-f"></i> 
