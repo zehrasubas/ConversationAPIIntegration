@@ -205,18 +205,18 @@ function Navigation({ user, onLogout, onLogin }) {
   return (
     <nav className="nav-container">
       <div className="nav-left">
-        <a href="/shop">Shop</a>
-        <a href="/gift-cards">Gift Cards</a>
-        <a href="/about">About</a>
-        <a href="/blog" className="active">Blog</a>
+        <a href="/destinations">Destinations</a>
+        <a href="/experiences">Experiences</a>
+        <a href="/tours">Tours</a>
+        <a href="/blog" className="active">Travel Blog</a>
       </div>
       <div className="nav-center">
-        <h1 className="logo">CANDLE</h1>
+        <h1 className="logo">WANDERLUST</h1>
       </div>
       <div className="nav-right">
         <a href="/facebook" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
-        <a href="/pinterest" aria-label="Pinterest"><i className="fab fa-pinterest-p"></i></a>
         <a href="/instagram" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
+        <a href="/twitter" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
         <button className="icon-button" aria-label="Search"><i className="fa fa-search"></i></button>
         
         <div style={{ margin: '0 15px', display: 'flex', alignItems: 'center' }}>
@@ -228,7 +228,7 @@ function Navigation({ user, onLogout, onLogin }) {
               <button 
                 onClick={onLogout}
                 style={{
-                  backgroundColor: '#4267B2',
+                  backgroundColor: '#2E86AB',
                   color: 'white',
                   border: 'none',
                   padding: '8px 16px',
@@ -249,7 +249,7 @@ function Navigation({ user, onLogout, onLogin }) {
           )}
         </div>
 
-        <button className="icon-button" aria-label="Cart"><i className="fa fa-shopping-cart"></i></button>
+        <button className="icon-button" aria-label="Favorites"><i className="fa fa-heart"></i></button>
       </div>
     </nav>
   );
@@ -259,8 +259,9 @@ function BlogHero() {
   return (
     <section className="blog-hero">
       <div className="hero-content">
-        <span className="subtitle">Featured Story</span>
-        <h2>The Art of Candle Making: A Journey Through Time</h2>
+        <span className="subtitle">Featured Destination</span>
+        <h2>Discover Hidden Gems Around the World</h2>
+        <p>From ancient temples to pristine beaches, explore the most breathtaking destinations our planet has to offer</p>
       </div>
     </section>
   );
@@ -269,22 +270,31 @@ function BlogHero() {
 function NewsSection() {
   return (
     <section className="news-section">
-      <h2>News</h2>
-      <div className="news-grid">
-        <article className="news-card">
-          <div className="news-image-placeholder"></div>
-          <div className="news-content">
-            <h3>The Art of Candle Making</h3>
-            <p>Discover the intricate process behind our handcrafted candles</p>
-          </div>
-        </article>
-        <article className="news-card">
-          <div className="news-image-placeholder"></div>
-          <div className="news-content">
-            <h3>New Fall Collection</h3>
-            <p>Explore our latest seasonal fragrances</p>
-          </div>
-        </article>
+      <div className="container">
+        <h2>Latest Travel Stories</h2>
+        <div className="news-grid">
+          <article className="news-card">
+            <img src="/sample1.jpg" alt="Mountain Adventure" />
+            <div className="news-content">
+              <h3>Epic Mountain Adventures Await</h3>
+              <p>Discover the thrill of high-altitude trekking and breathtaking mountain vistas that will leave you speechless.</p>
+            </div>
+          </article>
+          <article className="news-card">
+            <img src="/sample2.jpg" alt="Cultural Experience" />
+            <div className="news-content">
+              <h3>Immerse in Local Cultures</h3>
+              <p>Experience authentic traditions, taste local cuisines, and connect with communities around the globe.</p>
+            </div>
+          </article>
+          <article className="news-card">
+            <img src="/sample3.jpg" alt="Ocean Paradise" />
+            <div className="news-content">
+              <h3>Paradise Found: Tropical Escapes</h3>
+              <p>Unwind on pristine beaches, dive into crystal-clear waters, and experience the ultimate tropical getaway.</p>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
   );

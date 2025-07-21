@@ -1,4 +1,14 @@
-/* Reset and base styles */
+/* Travel Theme Color Palette */
+:root {
+  --primary-blue: #2E86AB;
+  --ocean-blue: #A23B72;
+  --sunset-orange: #F18F01;
+  --warm-sand: #C73E1D;
+  --deep-teal: #1B4D3E;
+  --light-gray: #f8f9fa;
+  --dark-gray: #343a40;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,75 +16,94 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  color: #333;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   line-height: 1.6;
+  color: var(--dark-gray);
+  background-color: #ffffff;
 }
 
 .App {
-  min-height: 100vh;
-  background-color: #fff;
+  text-align: center;
 }
 
-/* Navigation */
+/* Navigation Styles */
 .nav-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  background: white;
-  border-bottom: 1px solid #eee;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--ocean-blue) 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(46, 134, 171, 0.2);
 }
 
 .nav-left, .nav-right {
   display: flex;
-  gap: 2rem;
   align-items: center;
+  gap: 1.5rem;
 }
 
 .nav-left a {
+  color: white;
   text-decoration: none;
-  color: #333;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
 }
 
-.nav-left a.active {
-  border-bottom: 1px solid #333;
+.nav-left a:hover, .nav-left a.active {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
 }
 
 .logo {
-  font-size: 1.5rem;
+  font-size: 2rem;
+  font-weight: 700;
   letter-spacing: 2px;
-  text-transform: uppercase;
-  font-weight: 300;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.nav-right a {
+  color: white;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+}
+
+.nav-right a:hover {
+  color: var(--sunset-orange);
+  transform: scale(1.1);
 }
 
 .icon-button {
   background: none;
   border: none;
+  color: white;
+  font-size: 1.2rem;
   cursor: pointer;
   padding: 0.5rem;
-  color: #333;
+  border-radius: 50%;
+  transition: all 0.3s ease;
 }
 
-.nav-right a, .nav-right button {
-  color: #333;
-  text-decoration: none;
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
 }
 
-/* Blog Hero Section */
+/* Hero Section */
 .blog-hero {
-  height: 70vh;
-  background: #8B7355;  /* A warm brown color as placeholder */
-  background-size: cover;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--primary-blue) 0%,
+    var(--ocean-blue) 50%,
+    var(--sunset-orange) 100%
+  );
+  padding: 6rem 2rem;
   color: white;
-  text-align: center;
   position: relative;
+  overflow: hidden;
 }
 
 .blog-hero::before {
@@ -84,41 +113,67 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="10" cy="10" r="1" fill="white" opacity="0.1"/><circle cx="30" cy="30" r="1" fill="white" opacity="0.1"/><circle cx="60" cy="20" r="1" fill="white" opacity="0.1"/><circle cx="80" cy="40" r="1" fill="white" opacity="0.1"/></svg>');
+  animation: float 20s infinite linear;
+}
+
+@keyframes float {
+  0% { transform: translateX(-100px); }
+  100% { transform: translateX(100vw); }
 }
 
 .hero-content {
+  max-width: 800px;
+  margin: 0 auto;
   position: relative;
   z-index: 1;
 }
 
-.hero-content .subtitle {
-  display: block;
-  font-size: 1.2rem;
+.subtitle {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-block;
   margin-bottom: 1rem;
+  backdrop-filter: blur(10px);
 }
 
 .hero-content h2 {
   font-size: 3.5rem;
-  font-weight: 300;
-  max-width: 800px;
-  margin: 0 auto;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  margin-bottom: 2rem;
 }
 
 /* News Section */
 .news-section {
   padding: 4rem 2rem;
+  background-color: var(--light-gray);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .news-section h2 {
-  font-size: 2rem;
-  font-weight: 300;
+  color: var(--primary-blue);
   margin-bottom: 2rem;
+  font-size: 2.5rem;
+  font-weight: 700;
 }
 
 .news-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 2rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -126,19 +181,26 @@ body {
 
 .news-card {
   background: white;
-  border-radius: 4px;
+  border-radius: 16px;
   overflow: hidden;
-  transition: transform 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(46, 134, 171, 0.1);
 }
 
 .news-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(46, 134, 171, 0.2);
 }
 
 .news-card img {
   width: 100%;
-  height: 250px;
+  height: 200px;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.news-card:hover img {
+  transform: scale(1.05);
 }
 
 .news-content {
@@ -146,14 +208,42 @@ body {
 }
 
 .news-content h3 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   margin-bottom: 0.5rem;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--primary-blue);
 }
 
 .news-content p {
   color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Facebook Login Button */
+.fb-login-btn {
+  background: linear-gradient(135deg, #1877f2 0%, #42a5f5 100%);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
   font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(24, 119, 242, 0.3);
+}
+
+.fb-login-btn:hover {
+  background: linear-gradient(135deg, #1464cf 0%, #1976d2 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(24, 119, 242, 0.4);
+}
+
+.fb-login-btn i {
+  font-size: 1rem;
 }
 
 /* Responsive Design */
@@ -171,8 +261,13 @@ body {
   .hero-content h2 {
     font-size: 2.5rem;
   }
+  
+  .news-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
+/* Keep existing App logo animations */
 .App-logo {
   height: 40vmin;
   pointer-events: none;
@@ -181,6 +276,15 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -203,37 +307,6 @@ body {
 
 .App-link {
   color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.fb-login-btn {
-  background: #1877f2;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background-color 0.2s;
-}
-
-.fb-login-btn:hover {
-  background: #1464cf;
-}
-
-.fb-login-btn i {
-  font-size: 1rem;
 }
 
 .user-info,

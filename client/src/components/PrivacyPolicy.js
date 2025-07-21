@@ -20,21 +20,24 @@ const PrivacyPolicy = () => {
         <li>Your name</li>
         <li>Your email address (if provided)</li>
         <li>Your public profile information</li>
+        <li>Your travel preferences and interests (optional)</li>
       </ul>
 
       <h2>2. How We Use Your Information</h2>
       <p>We use the collected information to:</p>
       <ul>
-        <li>Provide you with personalized service</li>
-        <li>Enable Facebook Messenger integration</li>
-        <li>Improve our website functionality</li>
-        <li>Communicate with you through our messaging platform</li>
+        <li>Provide personalized travel recommendations</li>
+        <li>Enable Facebook Messenger integration for travel support</li>
+        <li>Improve our travel website functionality</li>
+        <li>Communicate with you about travel opportunities</li>
+        <li>Send travel updates and destination information</li>
       </ul>
 
       <h2>3. Data Sharing</h2>
       <p>We do not sell, trade, or rent your personal information to third parties. We may share your information only in these circumstances:</p>
       <ul>
         <li>With Facebook/Meta as required for platform integration</li>
+        <li>With trusted travel partners for booking services</li>
         <li>When required by law</li>
         <li>To protect our rights and safety</li>
       </ul>
@@ -45,6 +48,7 @@ const PrivacyPolicy = () => {
         <li>You consent to Facebook's data policies</li>
         <li>Information may be shared between our service and Facebook</li>
         <li>You can revoke access at any time through your Facebook settings</li>
+        <li>We may use your data to provide travel-related messaging</li>
       </ul>
 
       <h2>5. Data Security</h2>

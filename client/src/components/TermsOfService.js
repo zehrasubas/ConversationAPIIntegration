@@ -19,20 +19,21 @@ const TermsOfService = () => {
       <h2>2. Description of Service</h2>
       <p>Our service provides:</p>
       <ul>
-        <li>Facebook Login integration</li>
-        <li>Messenger Platform connectivity</li>
-        <li>Chat functionality</li>
-        <li>Customer communication tools</li>
+        <li>Travel destination information and booking</li>
+        <li>Travel experiences and tour recommendations</li>
+        <li>Customer support through Facebook Login integration</li>
+        <li>Messenger Platform connectivity for travel assistance</li>
+        <li>Chat functionality for travel inquiries</li>
       </ul>
 
       <h2>3. User Obligations</h2>
       <p>You agree to:</p>
       <ul>
-        <li>Provide accurate information</li>
-        <li>Use the service responsibly</li>
-        <li>Comply with all applicable laws</li>
-        <li>Respect other users' rights</li>
-        <li>Not misuse our platform</li>
+        <li>Provide accurate information for travel bookings</li>
+        <li>Use the service responsibly and respect travel guidelines</li>
+        <li>Comply with all applicable laws and travel regulations</li>
+        <li>Respect other users' rights and travel experiences</li>
+        <li>Not misuse our platform or provide false travel information</li>
       </ul>
 
       <h2>4. Facebook Integration</h2>
@@ -41,10 +42,11 @@ const TermsOfService = () => {
         <li>You agree to Facebook's Terms of Service</li>
         <li>You consent to data sharing between our service and Facebook</li>
         <li>You understand that Facebook's policies also apply</li>
+        <li>Your travel preferences may be stored for better service</li>
       </ul>
 
       <h2>5. Privacy</h2>
-      <p>Your privacy is important to us. Please review our <a href="/privacy" style={{ color: '#4267B2' }}>Privacy Policy</a> for information about how we collect, use, and protect your data.</p>
+      <p>Your privacy is important to us. Please review our <a href="/privacy" style={{ color: '#2E86AB' }}>Privacy Policy</a> for information about how we collect, use, and protect your travel data.</p>
 
       <h2>6. Prohibited Uses</h2>
       <p>You may not use our service to:</p>

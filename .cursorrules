@@ -1,0 +1,15 @@
+# .cursorrules
+
+## General Rules
+- Never remove or break existing functionality when adding new features
+- Always preserve current working code
+- Add new features incrementally without modifying existing working parts
+- Comment on any changes that might affect existing functionality
+- Test that existing features still work after changes
+
+## Code Style
+
+
+## Project Context
+- This is a project to implement conversation API features from facebook
+- Key existing features that must not be broken: login, messenger
