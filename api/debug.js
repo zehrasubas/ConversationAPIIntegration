@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       },
       
       messengerPlatform: {
-        appId: '46602389605039',
+        appId: '30902396742455',
         purpose: 'Messenger Platform integration',
         status: 'Setup required - add Messenger Product',
         requiredSettings: {
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
           'Clear browser cache and test'
         ],
         messengerIssues: [
-          'Complete Messenger Platform setup on app 46602389605039',
+          'Complete Messenger Platform setup on app 30902396742455',
           'Add environment variables to Vercel',
           'Verify webhook URL is accessible',
           'Test with Facebook Page admin'
@@ -62,8 +62,8 @@ export default async function handler(req, res) {
       debugActions: [
         `Login App: https://developers.facebook.com/apps/21102398933175/settings/basic/`,
         `Login OAuth: https://developers.facebook.com/apps/21102398933175/fb-login/settings/`,
-        `Messenger App: https://developers.facebook.com/apps/46602389605039/`,
-        `Messenger Setup: https://developers.facebook.com/apps/46602389605039/messenger/`
+        `Messenger App: https://developers.facebook.com/apps/30902396742455/`,
+        `Messenger Setup: https://developers.facebook.com/apps/30902396742455/messenger/`
       ]
     };
 

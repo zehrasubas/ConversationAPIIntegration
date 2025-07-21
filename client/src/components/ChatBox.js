@@ -117,11 +117,7 @@ const ChatBox = ({ user }) => {
       }
 
       // Send message to backend (which will try to send to Messenger)
-      const response = await chatService.sendMessage({
-        message: inputMessage,
-        userId: userPSID || user.id,
-        timestamp: newMessage.timestamp
-      });
+      const response = await chatService.sendMessage(inputMessage, userPSID || user.id);
 
       console.log('Message sent successfully:', response);
       
