@@ -26,7 +26,6 @@ const ChatBox = ({ user }) => {
 
   // Fetch message history when chat is opened - COMMENTED OUT until Messenger setup
   // NOTE: Disabled until PAGE_ACCESS_TOKEN and Messenger Platform are configured
-  console.log('ℹ️ Message history loading disabled until Messenger Platform setup complete');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
