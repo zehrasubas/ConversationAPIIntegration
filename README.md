@@ -1,19 +1,25 @@
-# Facebook Messenger Platform Integration - Step by Step Guide
+# Facebook Messenger Platform Integration - Two-App Architecture
 
-## 🎯 **Current Status: Adding Messenger Platform**
+## 🏗️ **Architecture Overview**
 
-Your Facebook login works! Now we're adding full **Messenger Platform integration** so messages from your chat bubble appear in Facebook Messenger.
+This project uses **two separate Facebook Apps** for clean separation of concerns:
+
+- **Login App** (`21102398933175`): Handles Facebook Login only
+- **Messenger App** (`46602389605039`): Handles Messenger Platform integration
 
 ## 📋 **Required Environment Variables for Vercel**
 
 Add these to your **Vercel Dashboard → Settings → Environment Variables**:
 
 ```env
-# Facebook App Configuration
+# Login App Configuration  
+FACEBOOK_LOGIN_APP_ID=21102398933175
+
+# Messenger App Configuration
 FACEBOOK_APP_ID=46602389605039
 FACEBOOK_APP_SECRET=your_facebook_app_secret
 
-# Page Access Token (Generate from FB Console)
+# Page Access Token (Generate from Messenger App)
 PAGE_ACCESS_TOKEN=your_facebook_page_access_token
 
 # Webhook Configuration  
@@ -26,22 +32,30 @@ WEBHOOK_SECRET=0e7e5f5869595f2f8a68d686cfd87cdb
 
 ## 🔧 **Facebook Developer Console Setup**
 
-### **Step 1: Add Messenger Platform**
-1. Go to [Facebook Developers Console](https://developers.facebook.com/apps/)
-2. Select App ID: `46602389605039`
-3. Click **"Add Product"** → **"Messenger"** → **"Set Up"**
+### **Part 1: Login App Setup (`21102398933175`)**
 
-### **Step 2: Generate Page Access Token**
-1. In **Messenger → Settings → Access Tokens**
-2. **Select your Facebook Page** (create one if needed)
-3. **Copy the Page Access Token**
-4. **Add to Vercel environment variables** as `PAGE_ACCESS_TOKEN`
+1. **Go to:** https://developers.facebook.com/apps/21102398933175/
+2. **Settings → Basic**:
+   - **App Domains:** `conversation-api-integration.vercel.app`
+   - **Site URL:** `https://conversation-api-integration.vercel.app/`
+3. **Products → Facebook Login → Settings**:
+   - **Valid OAuth Redirect URIs:** `https://conversation-api-integration.vercel.app/`
+4. **Ensure App is Live mode** (not Development)
 
-### **Step 3: Configure Webhook**
-1. In **Messenger → Settings → Webhooks**
-2. **Callback URL**: `https://conversation-api-integration.vercel.app/api/webhook`
-3. **Verify Token**: Use the same value as your `VERIFY_TOKEN` env var
-4. **Subscribe to**: `messages`, `messaging_postbacks`
+### **Part 2: Messenger App Setup (`46602389605039`)**
+
+1. **Go to:** https://developers.facebook.com/apps/46602389605039/
+2. **Add Messenger Product**: **+ Add Product** → **Messenger** → **Set Up**
+3. **Generate Page Access Token**:
+   - **Messenger → Settings → Access Tokens**
+   - **Select your Facebook Page** (create one if needed)
+   - **Copy the Page Access Token**
+   - **Add to Vercel as `PAGE_ACCESS_TOKEN`**
+4. **Configure Webhook**:
+   - **Messenger → Settings → Webhooks**
+   - **Callback URL:** `https://conversation-api-integration.vercel.app/api/webhook`
+   - **Verify Token:** `HiMetaConvAPIHi`
+   - **Subscribe to:** `messages`, `messaging_postbacks`
 
 ### **Step 4: Required Permissions**
 Request these permissions in **App Review → Permissions**:

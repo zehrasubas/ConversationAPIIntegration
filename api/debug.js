@@ -16,10 +16,13 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString(),
       domain: host,
       baseUrl: baseUrl,
+      
+      // Two-App Architecture
       facebookLogin: {
-        appId: '46602389605039',
+        appId: '21102398933175',
+        purpose: 'Facebook Login only',
         currentScope: ['public_profile', 'email'],
-        status: '⚠️ Login issues detected - Check Facebook App Configuration',
+        status: 'Active for basic login',
         requiredSettings: {
           appDomains: [host],
           validOAuthRedirectURIs: [`${baseUrl}/`],
@@ -28,28 +31,39 @@ export default async function handler(req, res) {
           appMode: 'Live (for production) or Development (for testing)'
         }
       },
+      
+      messengerPlatform: {
+        appId: '46602389605039',
+        purpose: 'Messenger Platform integration',
+        status: 'Setup required - add Messenger Product',
+        requiredSettings: {
+          messengerProduct: 'Add Messenger Platform product',
+          pageAccessToken: 'Generate Page Access Token',
+          webhookUrl: `${baseUrl}/api/webhook`,
+          verifyToken: 'HiMetaConvAPIHi'
+        }
+      },
+      
       troubleshooting: {
-        commonIssues: [
-          'App is in Development mode but user is not a test user/admin',
-          'Missing Facebook Login product in app',
-          'Invalid OAuth Redirect URIs',
-          'App Domains not configured',
-          'Basic permissions not approved',
-          'App needs to be switched to Live mode'
+        loginIssues: [
+          'Check login app (21102398933175) configuration',
+          'Verify OAuth Redirect URIs for login app',
+          'Ensure login app is Live mode',
+          'Clear browser cache and test'
         ],
-        checkSteps: [
-          '1. Go to Facebook Developer Console',
-          '2. Check App Status (Live vs Development)',
-          '3. Verify Facebook Login product is added',
-          '4. Check Valid OAuth Redirect URIs',
-          '5. Verify App Domains',
-          '6. Review basic permissions approval'
+        messengerIssues: [
+          'Complete Messenger Platform setup on app 46602389605039',
+          'Add environment variables to Vercel',
+          'Verify webhook URL is accessible',
+          'Test with Facebook Page admin'
         ]
       },
+      
       debugActions: [
-        `Visit: https://developers.facebook.com/apps/46602389605039/settings/basic/`,
-        `Check OAuth URIs: https://developers.facebook.com/apps/46602389605039/fb-login/settings/`,
-        `Review permissions: https://developers.facebook.com/apps/46602389605039/app-review/permissions/`
+        `Login App: https://developers.facebook.com/apps/21102398933175/settings/basic/`,
+        `Login OAuth: https://developers.facebook.com/apps/21102398933175/fb-login/settings/`,
+        `Messenger App: https://developers.facebook.com/apps/46602389605039/`,
+        `Messenger Setup: https://developers.facebook.com/apps/46602389605039/messenger/`
       ]
     };
 

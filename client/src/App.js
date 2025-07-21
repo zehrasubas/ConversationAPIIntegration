@@ -23,9 +23,9 @@ function FacebookLogin({ onLogin }) {
         console.log('🌐 Current protocol:', window.location.protocol);
         
         try {
-          console.log('🔧 Attempting to initialize with App ID: 46602389605039');
+          console.log('🔧 Attempting to initialize with App ID: 21102398933175');
           window.FB.init({
-            appId: '46602389605039',
+            appId: '21102398933175',
             cookie: true,
             xfbml: true,
             version: 'v19.0'
@@ -102,7 +102,7 @@ function FacebookLogin({ onLogin }) {
                 console.log('🔄 FB not initialized, trying manual init');
                 try {
                   window.FB.init({
-                    appId: '46602389605039',
+                    appId: '21102398933175',
                     cookie: true,
                     xfbml: true,
                     version: 'v19.0'
