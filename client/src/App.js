@@ -23,9 +23,9 @@ function FacebookLogin({ onLogin }) {
         console.log('🌐 Current protocol:', window.location.protocol);
         
         try {
-          console.log('🔧 Attempting to initialize with App ID: 30902396742455');
+          console.log('🔧 Attempting to initialize with App ID: 46602389605039');
           window.FB.init({
-            appId: '30902396742455',
+            appId: '46602389605039',
             cookie: true,
             xfbml: true,
             version: 'v19.0'
@@ -102,7 +102,7 @@ function FacebookLogin({ onLogin }) {
                 console.log('🔄 FB not initialized, trying manual init');
                 try {
                   window.FB.init({
-                    appId: '30902396742455',
+                    appId: '46602389605039',
                     cookie: true,
                     xfbml: true,
                     version: 'v19.0'
@@ -335,12 +335,13 @@ function App() {
     console.log('📧 User Email:', userInfo?.email);
     console.log('👤 User Name:', userInfo?.name);
     
-    // Store user info in localStorage
+    // Store basic user info - keep login simple and fast
     console.log('💾 Storing user info in localStorage...');
     localStorage.setItem('user', JSON.stringify(userInfo));
     setUser(userInfo);
     
     console.log('🎉 Login completed successfully!');
+    console.log('📝 Messenger integration available - will activate when user sends first message');
   };
 
   const handleLogout = () => {

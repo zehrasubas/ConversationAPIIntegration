@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       domain: host,
       baseUrl: baseUrl,
       facebookLogin: {
-        appId: '30902396742455',
+        appId: '46602389605039',
         currentScope: ['public_profile', 'email'],
         status: '⚠️ Login issues detected - Check Facebook App Configuration',
         requiredSettings: {
@@ -47,9 +47,9 @@ export default async function handler(req, res) {
         ]
       },
       debugActions: [
-        `Visit: https://developers.facebook.com/apps/30902396742455/settings/basic/`,
-        `Check OAuth URIs: https://developers.facebook.com/apps/30902396742455/fb-login/settings/`,
-        `Review permissions: https://developers.facebook.com/apps/30902396742455/app-review/permissions/`
+        `Visit: https://developers.facebook.com/apps/46602389605039/settings/basic/`,
+        `Check OAuth URIs: https://developers.facebook.com/apps/46602389605039/fb-login/settings/`,
+        `Review permissions: https://developers.facebook.com/apps/46602389605039/app-review/permissions/`
       ]
     };
 

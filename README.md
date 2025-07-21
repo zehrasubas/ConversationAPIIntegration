@@ -10,7 +10,7 @@ Add these to your **Vercel Dashboard → Settings → Environment Variables**:
 
 ```env
 # Facebook App Configuration
-FACEBOOK_APP_ID=30902396742455
+FACEBOOK_APP_ID=46602389605039
 FACEBOOK_APP_SECRET=your_facebook_app_secret
 
 # Page Access Token (Generate from FB Console)
@@ -28,7 +28,7 @@ WEBHOOK_SECRET=0e7e5f5869595f2f8a68d686cfd87cdb
 
 ### **Step 1: Add Messenger Platform**
 1. Go to [Facebook Developers Console](https://developers.facebook.com/apps/)
-2. Select App ID: `30902396742455`
+2. Select App ID: `46602389605039`
 3. Click **"Add Product"** → **"Messenger"** → **"Set Up"**
 
 ### **Step 2: Generate Page Access Token**
