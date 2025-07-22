@@ -61,36 +61,71 @@ async function sendToFacebook(recipientId, text) {
 }
 
 export default async function handler(req, res) {
+  // 🚀 COMPREHENSIVE LOGGING - Start
+  console.log('🚀 Webhook endpoint hit!');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Query params:', JSON.stringify(req.query, null, 2));
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('🚀 COMPREHENSIVE LOGGING - End');
+  
   if (req.method === 'GET') {
-    // Webhook verification for Facebook
-    console.log('🔍 Webhook verification request received');
-    
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
     
-    console.log('📋 Verification details:', {
-      mode,
-      token,
-      challenge,
-      expectedToken: process.env.VERIFY_TOKEN
-    });
+    // Facebook webhook verification
+    if (mode && token && challenge) {
+      console.log('🔍 Facebook webhook verification request received');
+      console.log('📋 Verification details:', {
+        mode,
+        token,
+        challenge,
+        expectedToken: process.env.VERIFY_TOKEN
+      });
 
-    // Check if mode and token are correct
-    if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
-      console.log('✅ Webhook verified successfully');
-      res.status(200).send(challenge);
-    } else {
-      console.error('❌ Webhook verification failed');
-      res.status(403).send('Forbidden');
+      // Check if mode and token are correct
+      if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
+        console.log('✅ Webhook verified successfully');
+        res.status(200).send(challenge);
+      } else {
+        console.error('❌ Webhook verification failed');
+        res.status(403).send('Forbidden');
+      }
+      return;
     }
+    
+    // Manual testing endpoint
+    console.log('🧪 Manual webhook test request');
+    console.log('📋 GET request - likely manual test or Facebook verification');
+    console.log('🔧 Environment check:', {
+      verify_token_configured: !!process.env.VERIFY_TOKEN,
+      page_access_token_configured: !!process.env.PAGE_ACCESS_TOKEN,
+      page_id_configured: !!process.env.PAGE_ID
+    });
+    
+    res.status(200).json({
+      status: 'Webhook is running!',
+      timestamp: new Date().toISOString(),
+      url: req.url,
+      method: req.method,
+      note: 'This webhook is ready to receive POST requests from Facebook Messenger',
+      verify_token_configured: !!process.env.VERIFY_TOKEN,
+      page_access_token_configured: !!process.env.PAGE_ACCESS_TOKEN,
+      page_id_configured: !!process.env.PAGE_ID,
+      query_params: req.query
+    });
     return;
   }
 
   if (req.method === 'POST') {
+    console.log('📨 POST request - webhook data received');
     console.log('📬 Webhook event received');
     console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
     console.log('📦 Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('🔐 X-Hub-Signature present:', !!req.headers['x-hub-signature-256']);
 
     try {
       // Verify the webhook signature (recommended for production)
@@ -110,10 +145,14 @@ export default async function handler(req, res) {
             console.log('💬 Processing messaging event:', JSON.stringify(webhookEvent, null, 2));
             
             const senderId = webhookEvent.sender.id;
-            console.log('👤 Sender ID:', senderId);
+            console.log('👤 Real PSID from webhook:', senderId);
+            console.log('📧 This is the PSID we should use for sending messages back');
 
             if (webhookEvent.message) {
               console.log('📬 Processing message event:', JSON.stringify(webhookEvent.message, null, 2));
+              console.log('📝 Message text:', webhookEvent.message.text);
+              console.log('🆔 From PSID:', senderId);
+              
               // Handle message
               const message = {
                 id: webhookEvent.message.mid,
@@ -127,7 +166,7 @@ export default async function handler(req, res) {
               // Auto-reply example
               if (webhookEvent.message.text) {
                 try {
-                  console.log('🤖 Sending auto-reply to sender:', senderId);
+                  console.log('🤖 Sending auto-reply to PSID:', senderId);
                   const response = await sendToFacebook(
                     senderId,
                     `Thank you for your message: "${webhookEvent.message.text}". We'll get back to you soon!`
@@ -161,6 +200,8 @@ export default async function handler(req, res) {
       res.status(500).send('ERROR_PROCESSING_WEBHOOK');
     }
   } else {
+    console.log('⚠️ Unsupported method:', req.method);
+    console.log('📋 Allowed methods: GET, POST');
     res.setHeader('Allow', ['GET', 'POST']);
     res.status(405).send('Method Not Allowed');
   }
