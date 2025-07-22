@@ -23,6 +23,17 @@ async function sendToFacebookMessenger(recipientPSID, text) {
     url: `https://graph.facebook.com/v19.0/me/messages`
   });
 
+  const requestBody = {
+    recipient: { id: recipientPSID },
+    message: { 
+      text: text 
+    },
+    messaging_type: "RESPONSE" // Response to user message within 24 hours
+  };
+
+  console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+  console.log('🔑 Using PAGE_ACCESS_TOKEN (first 10 chars):', process.env.PAGE_ACCESS_TOKEN?.substring(0, 10) + '...');
+
   try {
     const response = await fetch(
       `https://graph.facebook.com/v19.0/me/messages?access_token=${process.env.PAGE_ACCESS_TOKEN}`,
@@ -31,17 +42,14 @@ async function sendToFacebookMessenger(recipientPSID, text) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          recipient: { id: recipientPSID },
-          message: { 
-            text: text 
-          },
-          messaging_type: "RESPONSE" // Response to user message within 24 hours
-        })
+        body: JSON.stringify(requestBody)
       }
     );
 
     const data = await response.json();
+    
+    console.log('📥 Facebook API Response Status:', response.status);
+    console.log('📥 Facebook API Response:', JSON.stringify(data, null, 2));
     
     if (!response.ok) {
       console.error('❌ Facebook Messenger API Error:', {
