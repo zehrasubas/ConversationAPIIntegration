@@ -9,6 +9,13 @@ const SupportPage = ({ user }) => {
   const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
 
   useEffect(() => {
+    const formatTime = (timestamp) => {
+      return new Date(timestamp).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
     const createSupportTicket = async (conversationHistory) => {
       try {
         // eslint-disable-next-line no-console
@@ -257,25 +264,6 @@ const SupportPage = ({ user }) => {
     // Initialize support page
     initializeSupportPage();
   }, [sessionId, user, setTicketCreated, setTicketId, setError, setLoading, loading]);
-
-  const formatConversationHistory = (history) => {
-    if (!history || history.length === 0) {
-      return 'No previous conversation history.';
-    }
-    
-    return history.map((entry, index) => {
-      const time = formatTime(entry.timestamp);
-      const sender = entry.sender === 'user' ? '👤 Customer' : '🤖 Assistant';
-      return `${time} - ${sender}: ${entry.text}`;
-    }).join('\n');
-  };
-
-  const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const handleBackToWebsite = () => {
     // Clear the conversation history since user is getting support
