@@ -123,29 +123,38 @@ const SupportPage = ({ user }) => {
               // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: Formatted message:', fullMessage);
               
-              // Use the modern Zendesk API to send the conversation history as the first message
+              // Use conversation fields to pass metadata to the ticket
               setTimeout(() => {
                 // eslint-disable-next-line no-console
-                console.log('🔍 DEBUG: Sending conversation history as message...');
+                console.log('🔍 DEBUG: Setting conversation fields...');
                 
                 try {
-                  // Send the conversation history as an actual message in the chat
-                  window.zE('messenger', 'send', fullMessage);
+                  // Set conversation fields with the history - this goes to the ticket
+                  window.zE('messenger:set', 'conversationFields', [
+                    {
+                      id: '39467850731803', // Conversation History field ID
+                      value: fullMessage
+                    },
+                    {
+                      id: '39467890996891', // Chat Session ID field ID
+                      value: sessionId
+                    }
+                  ]);
                   // eslint-disable-next-line no-console
-                  console.log('✅ DEBUG: Conversation history sent successfully');
+                  console.log('✅ DEBUG: Conversation fields set successfully');
                 } catch (error) {
                   // eslint-disable-next-line no-console
-                  console.error('❌ DEBUG: Failed to send conversation history:', error);
+                  console.error('❌ DEBUG: Failed to set conversation fields:', error);
                 }
-              }, 2000);
+              }, 1000);
             } else {
               // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: No conversation history found');
             }
 
-            // Set conversation tags using modern API
+            // Set conversation tags
             try {
-              window.zE('messenger', 'set', 'tags', [
+              window.zE('messenger:set', 'conversationTags', [
                 'chat-transfer', 
                 'support-request', 
                 'web-widget',
