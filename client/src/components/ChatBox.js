@@ -23,10 +23,12 @@ const ChatBox = ({ user }) => {
         const stored = localStorage.getItem('conversationHistory');
         if (stored) {
           const history = JSON.parse(stored);
+          // eslint-disable-next-line no-console
           console.log('📝 Loaded conversation history:', history.length, 'messages');
           setMessages(history);
         }
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('❌ Error loading conversation history:', error);
       }
     };
@@ -48,8 +50,10 @@ const ChatBox = ({ user }) => {
     if (messages.length > 0) {
       try {
         localStorage.setItem('conversationHistory', JSON.stringify(messages));
+        // eslint-disable-next-line no-console
         console.log('💾 Saved conversation history:', messages.length, 'messages');
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('❌ Error saving conversation history:', error);
       }
     }
@@ -79,6 +83,7 @@ const ChatBox = ({ user }) => {
       
       // If no PSID yet, try to get one (on-demand Messenger integration)
       if (!userPSID && user?.id) {
+        // eslint-disable-next-line no-console
         console.log('🔄 First message - attempting Messenger integration...');
         try {
           const response = await fetch('/api/exchange-token', {
@@ -92,10 +97,12 @@ const ChatBox = ({ user }) => {
           });
 
           const data = await response.json();
+          // eslint-disable-next-line no-console
           console.log('📬 PSID Exchange Response:', data);
           
           if (data?.success && data?.psid) {
             userPSID = data.psid;
+            // eslint-disable-next-line no-console
             console.log('✅ Messenger integration activated:', userPSID);
             
             // Update user data with PSID for future messages
@@ -107,22 +114,28 @@ const ChatBox = ({ user }) => {
             localStorage.setItem('user', JSON.stringify(userWithPSID));
             // Note: Not updating React state during message send to avoid complexity
           } else {
+            // eslint-disable-next-line no-console
             console.log('⚠️ Messenger integration not available - using local chat only');
           }
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.error('❌ Error during Messenger integration:', error);
+          // eslint-disable-next-line no-console
           console.log('📝 Continuing with local chat only');
         }
       }
 
       // Send message to backend (which will try to send to Messenger)
+      // eslint-disable-next-line no-console
       console.log('📤 Sending message to backend - Messenger Platform setup pending...');
       const response = await chatService.sendMessage(inputMessage, userPSID || user.id);
 
+      // eslint-disable-next-line no-console
       console.log('Message sent successfully:', response);
       
       // Show status in UI based on response
       if (response?.status === 'local_only') {
+        // eslint-disable-next-line no-console
         console.log('💾 Message stored locally only - Messenger Platform not configured yet');
       }
 
@@ -134,6 +147,7 @@ const ChatBox = ({ user }) => {
       ));
 
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to send message:', error);
       
       // Update message status to show error
@@ -157,7 +171,9 @@ const ChatBox = ({ user }) => {
   };
 
   const handleGetSupport = () => {
+    // eslint-disable-next-line no-console
     console.log('🎫 Redirecting to support page...');
+    // eslint-disable-next-line no-console
     console.log('📝 Current conversation history:', messages);
     // eslint-disable-next-line no-console
     console.log('🔍 DEBUG: Messages length:', messages.length);

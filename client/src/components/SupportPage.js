@@ -21,10 +21,11 @@ const SupportPage = ({ user }) => {
             // eslint-disable-next-line no-console
             console.log('🔍 DEBUG: Number of messages:', history.length);
             return history;
-          } catch (error) {
-            console.error('❌ Error retrieving conversation history:', error);
-            return [];
-          }
+                } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('❌ Error retrieving conversation history:', error);
+        return [];
+      }
         };
 
         const conversationHistory = getConversationHistory();
@@ -35,11 +36,12 @@ const SupportPage = ({ user }) => {
         // Initialize Zendesk widget
         initializeZendeskWidget(conversationHistory);
         
-      } catch (error) {
-        console.error('❌ Failed to initialize support page:', error);
-        setError('Failed to initialize support. Please try again.');
-        setLoading(false);
-      }
+          } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to initialize support page:', error);
+      setError('Failed to initialize support. Please try again.');
+      setLoading(false);
+    }
     };
 
     // Initialize support page
@@ -49,6 +51,7 @@ const SupportPage = ({ user }) => {
 
   const createSupportTicket = async (conversationHistory) => {
     try {
+      // eslint-disable-next-line no-console
       console.log('🎫 Creating support ticket...');
       
       const response = await fetch('/api/zendesk/create-ticket', {
@@ -69,11 +72,13 @@ const SupportPage = ({ user }) => {
       if (result.success) {
         setTicketCreated(true);
         setTicketId(result.ticketId);
+        // eslint-disable-next-line no-console
         console.log('✅ Support ticket created:', result.ticketId);
       } else {
         throw new Error(result.error || 'Failed to create ticket');
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('❌ Failed to create support ticket:', error);
       setError(`Failed to create support ticket: ${error.message}`);
       throw error;
@@ -81,6 +86,7 @@ const SupportPage = ({ user }) => {
   };
 
   const initializeZendeskWidget = (conversationHistory) => {
+    // eslint-disable-next-line no-console
     console.log('🔄 Initializing Zendesk widget...');
     
     // Load Zendesk script if not already loaded
@@ -91,11 +97,13 @@ const SupportPage = ({ user }) => {
       script.async = true;
       
       script.onload = () => {
+        // eslint-disable-next-line no-console
         console.log('✅ Zendesk script loaded');
         configureZendeskWidget(conversationHistory);
       };
       
       script.onerror = () => {
+        // eslint-disable-next-line no-console
         console.error('❌ Failed to load Zendesk script');
         setError('Failed to load support widget. Please refresh the page.');
         setLoading(false);
@@ -103,6 +111,7 @@ const SupportPage = ({ user }) => {
       
       document.head.appendChild(script);
     } else {
+      // eslint-disable-next-line no-console
       console.log('✅ Zendesk already loaded');
       configureZendeskWidget(conversationHistory);
     }
@@ -181,9 +190,10 @@ const SupportPage = ({ user }) => {
                 });
                 // eslint-disable-next-line no-console
                 console.log('✅ DEBUG: Prefill set successfully');
-              } catch (error) {
-                console.error('❌ DEBUG: Prefill failed:', error);
-              }
+                              } catch (error) {
+                  // eslint-disable-next-line no-console
+                  console.error('❌ DEBUG: Prefill failed:', error);
+                }
             }, 1000);
 
             // Approach 2: Try conversation fields 
@@ -200,9 +210,10 @@ const SupportPage = ({ user }) => {
                 ]);
                 // eslint-disable-next-line no-console
                 console.log('✅ DEBUG: Conversation fields set successfully');
-              } catch (error) {
-                console.error('❌ DEBUG: Conversation fields failed:', error);
-              }
+                              } catch (error) {
+                  // eslint-disable-next-line no-console
+                  console.error('❌ DEBUG: Conversation fields failed:', error);
+                }
             }, 1500);
           } else {
             // eslint-disable-next-line no-console
@@ -224,10 +235,12 @@ const SupportPage = ({ user }) => {
           window.zE('messenger', 'show');
           window.zE('messenger', 'open');
           
+          // eslint-disable-next-line no-console
           console.log('✅ Zendesk widget configured with conversation history');
           setLoading(false);
 
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.error('❌ Error configuring Zendesk widget:', error);
           // Don't show error if widget is visible - just log it
           setLoading(false);
@@ -239,6 +252,7 @@ const SupportPage = ({ user }) => {
     setTimeout(() => {
       clearInterval(checkZE);
       if (loading) {
+        // eslint-disable-next-line no-console
         console.log('⏰ Zendesk widget check timeout - but widget may still be working');
         setLoading(false); // Don't set error, just stop loading
       }
