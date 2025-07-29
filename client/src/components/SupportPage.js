@@ -9,7 +9,7 @@ const SupportPage = ({ user }) => {
   const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
   const hasInitialized = useRef(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     // Prevent multiple initializations
     if (hasInitialized.current) {
@@ -251,6 +251,7 @@ const SupportPage = ({ user }) => {
     // Initialize support page
     initializeSupportPage();
   }, []); // Empty dependency array with ESLint disable comment above
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const handleBackToWebsite = () => {
     localStorage.removeItem('conversationHistory');
