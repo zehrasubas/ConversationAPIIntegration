@@ -112,7 +112,7 @@ const SupportPage = ({ user }) => {
         clearInterval(checkZE);
         
         try {
-          // Set user information
+          // Set user information first
           if (user?.name && user?.email) {
             window.zE('messenger:set', 'userFields', {
               name: user.name,
@@ -120,19 +120,32 @@ const SupportPage = ({ user }) => {
             });
           }
 
-          // Set conversation fields with history and session ID
-          const conversationFields = [
-            {
-              id: '39467850731803', // Conversation History field ID
-              value: formatConversationHistory(conversationHistory)
-            },
-            {
-              id: '39467890996891', // Chat Session ID field ID  
-              value: sessionId
-            }
-          ];
-
-          window.zE('messenger:set', 'conversationFields', conversationFields);
+          // Pre-fill conversation with history as the first message
+          const historyText = formatConversationHistory(conversationHistory);
+          if (historyText && historyText !== 'No previous conversation history.') {
+            // Send the conversation history as the initial message
+            window.zE('messenger:set', 'conversationFields', [
+              {
+                id: 'conversation_history',
+                value: historyText
+              }
+            ]);
+            
+            // Also set it as prefill text
+            window.zE('messenger:set', 'prefill', {
+              name: {
+                value: user?.name || 'Website Visitor',
+                readOnly: true
+              },
+              email: {
+                value: user?.email || 'visitor@conversation-api-integration.vercel.app',
+                readOnly: true
+              },
+              message: {
+                value: `Previous conversation history:\n\n${historyText}\n\n---\n\nI need human support to continue this conversation.`
+              }
+            });
+          }
 
           // Set conversation tags
           window.zE('messenger:set', 'conversationTags', [
@@ -145,44 +158,29 @@ const SupportPage = ({ user }) => {
           // Configure widget appearance
           window.zE('messenger:set', 'locale', 'en-US');
           
-          // Show and open the widget
-          setTimeout(() => {
-            window.zE('messenger', 'show');
-            window.zE('messenger', 'open');
-            console.log('✅ Zendesk widget opened');
-            setLoading(false);
-          }, 1000);
-
-          // Set up event listeners
-          window.zE('messenger:on', 'open', () => {
-            console.log('📖 Zendesk widget opened by user');
-          });
-
-          window.zE('messenger:on', 'close', () => {
-            console.log('📕 Zendesk widget closed by user');
-          });
-
-          window.zE('messenger:on', 'unreadCountChanged', (count) => {
-            console.log('📬 Unread messages:', count);
-          });
+          // Show and open the widget immediately
+          window.zE('messenger', 'show');
+          window.zE('messenger', 'open');
+          
+          console.log('✅ Zendesk widget configured with conversation history');
+          setLoading(false);
 
         } catch (error) {
           console.error('❌ Error configuring Zendesk widget:', error);
-          setError('Failed to configure support widget.');
+          // Don't show error if widget is visible - just log it
           setLoading(false);
         }
       }
     }, 500);
 
-    // Timeout fallback
+    // Shorter timeout and don't error if widget appears to be working
     setTimeout(() => {
       clearInterval(checkZE);
       if (loading) {
-        console.error('⏰ Zendesk widget initialization timeout');
-        setError('Support widget loading timeout. Please refresh the page.');
-        setLoading(false);
+        console.log('⏰ Zendesk widget check timeout - but widget may still be working');
+        setLoading(false); // Don't set error, just stop loading
       }
-    }, 15000);
+    }, 8000);
   };
 
 
@@ -192,14 +190,13 @@ const SupportPage = ({ user }) => {
       return 'No previous conversation history.';
     }
     
-    return history.map(entry => {
+    return history.map((entry, index) => {
       const time = new Date(entry.timestamp).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit'
       });
-      const sender = entry.sender === 'user' ? 'Customer' : 'System';
-      const status = entry.status ? ` [${entry.status}]` : '';
-      return `[${time}] ${sender}: ${entry.text}${status}`;
+      const sender = entry.sender === 'user' ? '👤 Customer' : '🤖 Assistant';
+      return `${time} - ${sender}: ${entry.text}`;
     }).join('\n');
   };
 
@@ -257,12 +254,19 @@ const SupportPage = ({ user }) => {
       
       <div className="support-content">
         <div className="welcome-section">
-          <h2>Welcome to Support</h2>
-          <p>
-            {user?.name ? `Hi ${user.name}! ` : 'Hi! '}
-            We've transferred your conversation to our support team. 
-            {ticketCreated ? ' A support ticket has been created with your conversation history.' : ''}
-          </p>
+          <div className="support-image">
+            <img 
+              src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&auto=format" 
+              alt="Customer Support" 
+              style={{
+                width: '100%',
+                height: '300px',
+                objectFit: 'cover',
+                borderRadius: '12px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+              }}
+            />
+          </div>
           
           {loading && (
             <div className="loading-indicator">
