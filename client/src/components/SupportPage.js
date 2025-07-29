@@ -120,18 +120,11 @@ const SupportPage = ({ user }) => {
             });
           }
 
-          // Pre-fill conversation with history as the first message
+          // Send conversation history as actual messages
           const historyText = formatConversationHistory(conversationHistory);
-          if (historyText && historyText !== 'No previous conversation history.') {
-            // Send the conversation history as the initial message
-            window.zE('messenger:set', 'conversationFields', [
-              {
-                id: 'conversation_history',
-                value: historyText
-              }
-            ]);
+          if (historyText && historyText !== 'No previous conversation history.' && conversationHistory.length > 0) {
             
-            // Also set it as prefill text
+            // Set user info
             window.zE('messenger:set', 'prefill', {
               name: {
                 value: user?.name || 'Website Visitor',
@@ -140,11 +133,26 @@ const SupportPage = ({ user }) => {
               email: {
                 value: user?.email || 'visitor@conversation-api-integration.vercel.app',
                 readOnly: true
-              },
-              message: {
-                value: `Previous conversation history:\n\n${historyText}\n\n---\n\nI need human support to continue this conversation.`
               }
             });
+
+            // Wait for widget to fully load, then send conversation history
+            setTimeout(() => {
+              // Send conversation history as individual messages
+              conversationHistory.forEach((message, index) => {
+                setTimeout(() => {
+                  const formattedMessage = `${formatTime(message.timestamp)} - ${message.sender === 'user' ? '👤 Me' : '🤖 Assistant'}: ${message.text}`;
+                  
+                  // Use Zendesk's API to send message
+                  window.zE('messenger', 'sendMessage', formattedMessage);
+                }, index * 500); // Delay each message by 500ms
+              });
+
+              // Send a final message indicating transfer to human support
+              setTimeout(() => {
+                window.zE('messenger', 'sendMessage', '---\n🎯 I need human support to continue this conversation.');
+              }, conversationHistory.length * 500 + 1000);
+            }, 2000);
           }
 
           // Set conversation tags
@@ -191,13 +199,17 @@ const SupportPage = ({ user }) => {
     }
     
     return history.map((entry, index) => {
-      const time = new Date(entry.timestamp).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      const time = formatTime(entry.timestamp);
       const sender = entry.sender === 'user' ? '👤 Customer' : '🤖 Assistant';
       return `${time} - ${sender}: ${entry.text}`;
     }).join('\n');
+  };
+
+  const formatTime = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
 
@@ -255,17 +267,37 @@ const SupportPage = ({ user }) => {
       <div className="support-content">
         <div className="welcome-section">
           <div className="support-image">
-            <img 
-              src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&auto=format" 
-              alt="Customer Support" 
+            <div 
               style={{
                 width: '100%',
                 height: '300px',
-                objectFit: 'cover',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 borderRadius: '12px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                overflow: 'hidden'
               }}
-            />
+            >
+              {/* Animated floating elements */}
+              <div className="support-animation">
+                <div className="floating-icon" style={{animationDelay: '0s'}}>💬</div>
+                <div className="floating-icon" style={{animationDelay: '1s'}}>🎧</div>
+                <div className="floating-icon" style={{animationDelay: '2s'}}>⚡</div>
+                <div className="floating-icon" style={{animationDelay: '0.5s'}}>💡</div>
+                <div className="floating-icon" style={{animationDelay: '1.5s'}}>🚀</div>
+              </div>
+              <div style={{
+                fontSize: '4rem',
+                color: 'white',
+                textAlign: 'center',
+                zIndex: 2
+              }}>
+                🎯
+              </div>
+            </div>
           </div>
           
           {loading && (
