@@ -3,6 +3,7 @@ import './App.css';
 import ChatBox from './components/ChatBox';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfService from './components/TermsOfService';
+import SupportPage from './components/SupportPage';
 import Footer from './components/Footer';
 
 function FacebookLogin({ onLogin }) {
@@ -390,6 +391,15 @@ function App() {
         />
         <TermsOfService />
         <Footer />
+      </div>
+    );
+  }
+
+  // Check if we're on support page
+  if (currentPath === '/support') {
+    return (
+      <div className="App">
+        <SupportPage user={user} />
       </div>
     );
   }

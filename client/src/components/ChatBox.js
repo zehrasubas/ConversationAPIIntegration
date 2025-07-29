@@ -16,6 +16,24 @@ const ChatBox = ({ user }) => {
   // Check if Messenger integration is available
   const hasMessengerIntegration = Boolean(user?.psid);
 
+  // Load conversation history from localStorage on component mount
+  useEffect(() => {
+    const loadConversationHistory = () => {
+      try {
+        const stored = localStorage.getItem('conversationHistory');
+        if (stored) {
+          const history = JSON.parse(stored);
+          console.log('📝 Loaded conversation history:', history.length, 'messages');
+          setMessages(history);
+        }
+      } catch (error) {
+        console.error('❌ Error loading conversation history:', error);
+      }
+    };
+
+    loadConversationHistory();
+  }, []);
+
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -23,6 +41,18 @@ const ChatBox = ({ user }) => {
 
   useEffect(() => {
     scrollToBottom();
+  }, [messages]);
+
+  // Save conversation history to localStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem('conversationHistory', JSON.stringify(messages));
+        console.log('💾 Saved conversation history:', messages.length, 'messages');
+      } catch (error) {
+        console.error('❌ Error saving conversation history:', error);
+      }
+    }
   }, [messages]);
 
   // Fetch message history when chat is opened - COMMENTED OUT until Messenger setup
@@ -126,6 +156,15 @@ const ChatBox = ({ user }) => {
     });
   };
 
+  const handleGetSupport = () => {
+    console.log('🎫 Redirecting to support page...');
+    console.log('📝 Current conversation history:', messages);
+    
+    // Conversation history is already saved to localStorage by useEffect
+    // Redirect to support page
+    window.location.href = '/support';
+  };
+
   return (
     <div className="chat-container">
       {/* Chat Toggle Button */}
@@ -141,7 +180,19 @@ const ChatBox = ({ user }) => {
         <div className="chat-window">
           {/* Chat Header */}
           <div className="chat-header">
-            <h3>Chat with Us</h3>
+            <div className="chat-header-content">
+              <h3>Chat with Us</h3>
+              {isAuthenticated && messages.length > 0 && (
+                <button 
+                  className="support-button"
+                  onClick={handleGetSupport}
+                  title="Get human support"
+                >
+                  <i className="fas fa-headset"></i>
+                  Get Support
+                </button>
+              )}
+            </div>
             {!isAuthenticated && (
               <div className="login-prompt">
                 Please log in with Facebook to start chatting
