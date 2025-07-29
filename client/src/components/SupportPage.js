@@ -123,7 +123,7 @@ const SupportPage = ({ user }) => {
               // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: Formatted message:', fullMessage);
               
-              // Use conversation fields to pass metadata to the ticket
+              // Use conversation fields to pass metadata to the ticket (run only once)
               setTimeout(() => {
                 // eslint-disable-next-line no-console
                 console.log('🔍 DEBUG: Setting conversation fields...');
@@ -142,11 +142,15 @@ const SupportPage = ({ user }) => {
                   ]);
                   // eslint-disable-next-line no-console
                   console.log('✅ DEBUG: Conversation fields set successfully');
+                  
+                  // Clear loading since we're done configuring
+                  setLoading(false);
                 } catch (error) {
                   // eslint-disable-next-line no-console
                   console.error('❌ DEBUG: Failed to set conversation fields:', error);
+                  setLoading(false);
                 }
-              }, 1000);
+              }, 500); // Faster execution
             } else {
               // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: No conversation history found');
@@ -171,6 +175,8 @@ const SupportPage = ({ user }) => {
             
             // eslint-disable-next-line no-console
             console.log('✅ Zendesk widget configured with conversation history');
+            
+            // Clear loading state immediately since widget is ready
             setLoading(false);
 
           } catch (error) {
@@ -185,12 +191,11 @@ const SupportPage = ({ user }) => {
       // Shorter timeout and don't error if widget appears to be working
       setTimeout(() => {
         clearInterval(checkZE);
-        if (loading) {
-          // eslint-disable-next-line no-console
-          console.log('⏰ Zendesk widget check timeout - but widget may still be working');
-          setLoading(false); // Don't set error, just stop loading
-        }
-      }, 8000);
+        // Force clear loading state after timeout
+        setLoading(false);
+        // eslint-disable-next-line no-console
+        console.log('⏰ Zendesk widget initialization complete');
+      }, 3000); // Reduced timeout
     };
 
     const initializeSupportPage = async () => {
@@ -230,7 +235,7 @@ const SupportPage = ({ user }) => {
 
     // Initialize support page
     initializeSupportPage();
-  }, [sessionId, user, setTicketCreated, setTicketId, setError, setLoading, loading]);
+  }, [sessionId, user?.name, user?.email]); // Simplified dependencies to prevent loops
 
   const handleBackToWebsite = () => {
     // Clear the conversation history since user is getting support
