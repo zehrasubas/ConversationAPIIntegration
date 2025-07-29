@@ -91,11 +91,13 @@ const SupportPage = ({ user }) => {
           clearInterval(checkZE);
           
           try {
-            // Set user information first
+            // Set user information first - using correct modern API
             if (user?.name && user?.email) {
-              window.zE('messenger:set', 'userFields', {
-                name: user.name,
-                email: user.email
+              window.zE('messenger', 'loginUser', function(callback) {
+                callback({
+                  name: user.name,
+                  email: user.email
+                });
               });
             }
 
@@ -109,19 +111,7 @@ const SupportPage = ({ user }) => {
               // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: Processing conversation history...');
               
-              // Set user info first
-              window.zE('messenger:set', 'prefill', {
-                name: {
-                  value: user?.name || 'Website Visitor',
-                  readOnly: true
-                },
-                email: {
-                  value: user?.email || 'visitor@conversation-api-integration.vercel.app',
-                  readOnly: true
-                }
-              });
-
-              // Format history as one initial message
+              // Format history as one message and send it automatically
               const historyText = conversationHistory.map(msg => {
                 const time = formatTime(msg.timestamp);
                 const sender = msg.sender === 'user' ? '👤 Me' : '🤖 Assistant';
@@ -133,70 +123,38 @@ const SupportPage = ({ user }) => {
               // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: Formatted message:', fullMessage);
               
-              // Try multiple approaches to ensure the conversation history is visible
-              
-              // Approach 1: Set prefill message (should appear in input field)
+              // Use the modern Zendesk API to send the conversation history as the first message
               setTimeout(() => {
                 // eslint-disable-next-line no-console
-                console.log('🔍 DEBUG: Attempting prefill approach...');
+                console.log('🔍 DEBUG: Sending conversation history as message...');
                 
                 try {
-                  window.zE('messenger:set', 'prefill', {
-                    name: {
-                      value: user?.name || 'Website Visitor',
-                      readOnly: false
-                    },
-                    email: {
-                      value: user?.email || 'visitor@conversation-api-integration.vercel.app',
-                      readOnly: false
-                    },
-                    message: {
-                      value: fullMessage,
-                      readOnly: false
-                    }
-                  });
+                  // Send the conversation history as an actual message in the chat
+                  window.zE('messenger', 'send', fullMessage);
                   // eslint-disable-next-line no-console
-                  console.log('✅ DEBUG: Prefill set successfully');
+                  console.log('✅ DEBUG: Conversation history sent successfully');
                 } catch (error) {
                   // eslint-disable-next-line no-console
-                  console.error('❌ DEBUG: Prefill failed:', error);
+                  console.error('❌ DEBUG: Failed to send conversation history:', error);
                 }
-              }, 1000);
-
-              // Approach 2: Try conversation fields 
-              setTimeout(() => {
-                // eslint-disable-next-line no-console
-                console.log('🔍 DEBUG: Attempting conversation fields approach...');
-                
-                try {
-                  window.zE('messenger:set', 'conversationFields', [
-                    {
-                      id: 'conversation_history',
-                      value: fullMessage
-                    }
-                  ]);
-                  // eslint-disable-next-line no-console
-                  console.log('✅ DEBUG: Conversation fields set successfully');
-                } catch (error) {
-                  // eslint-disable-next-line no-console
-                  console.error('❌ DEBUG: Conversation fields failed:', error);
-                }
-              }, 1500);
+              }, 2000);
             } else {
               // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: No conversation history found');
             }
 
-            // Set conversation tags
-            window.zE('messenger:set', 'conversationTags', [
-              'chat-transfer', 
-              'support-request', 
-              'web-widget',
-              `session-${sessionId}`
-            ]);
-
-            // Configure widget appearance
-            window.zE('messenger:set', 'locale', 'en-US');
+            // Set conversation tags using modern API
+            try {
+              window.zE('messenger', 'set', 'tags', [
+                'chat-transfer', 
+                'support-request', 
+                'web-widget',
+                `session-${sessionId}`
+              ]);
+            } catch (error) {
+              // eslint-disable-next-line no-console
+              console.log('⚠️ Tags not supported, skipping...');
+            }
             
             // Show and open the widget immediately
             window.zE('messenger', 'show');
