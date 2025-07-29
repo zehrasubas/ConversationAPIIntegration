@@ -9,6 +9,7 @@ const SupportPage = ({ user }) => {
   const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
   const hasInitialized = useRef(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Prevent multiple initializations
     if (hasInitialized.current) {
@@ -20,6 +21,7 @@ const SupportPage = ({ user }) => {
     hasInitialized.current = true;
     // eslint-disable-next-line no-console
     console.log('🚀 Initializing support page for the first time...');
+    
     const formatTime = (timestamp) => {
       return new Date(timestamp).toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -53,140 +55,136 @@ const SupportPage = ({ user }) => {
           // eslint-disable-next-line no-console
           console.log('✅ Support ticket created:', result.ticketId);
         } else {
-          throw new Error(result.error || 'Failed to create ticket');
+          // eslint-disable-next-line no-console
+          console.error('❌ Failed to create support ticket:', result);
+          setError('Failed to create support ticket. Please try again.');
         }
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Failed to create support ticket:', error);
-        setError(`Failed to create support ticket: ${error.message}`);
-        throw error;
+        console.error('❌ Error creating support ticket:', error);
+        setError(error.message || 'Failed to create support ticket');
       }
     };
 
     const initializeZendeskWidget = (conversationHistory) => {
-      // eslint-disable-next-line no-console
-      console.log('🔄 Initializing Zendesk widget...');
-      
       // Load Zendesk script if not already loaded
       if (!window.zE) {
+        // eslint-disable-next-line no-console
+        console.log('📦 Loading Zendesk script...');
+        
         const script = document.createElement('script');
         script.id = 'ze-snippet';
         script.src = 'https://static.zdassets.com/ekr/snippet.js?key=d00c5a70-85da-47ea-bd7d-7445bcc31c38';
         script.async = true;
         
-              script.onload = () => {
-        // eslint-disable-next-line no-console
-        console.log('✅ Zendesk script loaded');
-        setTimeout(() => {
-          configureZendeskWidget(conversationHistory);
-        }, 500); // Small delay to ensure script is fully ready
-      };
+        script.onload = () => {
+          // eslint-disable-next-line no-console
+          console.log('✅ Zendesk script loaded');
+          setTimeout(() => {
+            configureZendeskWidget(conversationHistory);
+          }, 500);
+        };
         
         script.onerror = () => {
           // eslint-disable-next-line no-console
           console.error('❌ Failed to load Zendesk script');
-          setError('Failed to load support widget. Please refresh the page.');
+          setError('Failed to load support widget');
           setLoading(false);
         };
         
         document.head.appendChild(script);
-          } else {
-      // eslint-disable-next-line no-console
-      console.log('✅ Zendesk already loaded');
-      setTimeout(() => {
-        configureZendeskWidget(conversationHistory);
-      }, 500); // Small delay for consistency
-    }
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('✅ Zendesk already loaded');
+        setTimeout(() => {
+          configureZendeskWidget(conversationHistory);
+        }, 500);
+      }
     };
 
     const configureZendeskWidget = (conversationHistory) => {
-      // Wait for Zendesk to be ready
+      // eslint-disable-next-line no-console
+      console.log('⚙️ Configuring Zendesk widget...');
+      
+      // Wait for Zendesk to be fully loaded
       const checkZE = setInterval(() => {
         if (window.zE) {
           clearInterval(checkZE);
           
           try {
-            // Set user information first - using correct modern API
-            if (user?.name && user?.email) {
-              window.zE('messenger', 'loginUser', function(callback) {
-                callback({
-                  name: user.name,
-                  email: user.email
-                });
-              });
-            }
-
-            // Debug and send conversation history
             // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: Conversation history received:', conversationHistory);
-            // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: History length:', conversationHistory.length);
+            console.log('🔍 DEBUG: Processing conversation history...');
             
+            // Process conversation history
+            let fullMessage = '';
             if (conversationHistory && conversationHistory.length > 0) {
               // eslint-disable-next-line no-console
-              console.log('🔍 DEBUG: Processing conversation history...');
+              console.log('🔍 DEBUG: History length:', conversationHistory.length);
               
-              // Format history as one message and send it automatically
-              const historyText = conversationHistory.map(msg => {
-                const time = formatTime(msg.timestamp);
-                const sender = msg.sender === 'user' ? '👤 Me' : '🤖 Assistant';
-                return `${time} - ${sender}: ${msg.text}`;
-              }).join('\n');
-
-              const fullMessage = `Previous conversation:\n\n${historyText}\n\n---\n🎯 I need human support to continue this conversation.`;
+              fullMessage = 'Previous conversation:\n\n';
               
-              // eslint-disable-next-line no-console
-              console.log('🔍 DEBUG: Formatted message:', fullMessage);
+              conversationHistory.forEach((message) => {
+                const timeStr = formatTime(message.timestamp);
+                const sender = message.type === 'user' ? '👤 Me' : '🤖 Bot';
+                fullMessage += `${timeStr} - ${sender}: ${message.message}\n`;
+              });
               
-              // Use conversation fields to pass metadata to the ticket (run only once)
-              setTimeout(() => {
-                // eslint-disable-next-line no-console
-                console.log('🔍 DEBUG: Setting conversation fields...');
-                
-                try {
-                  // Set conversation fields with the history - this goes to the ticket
-                  window.zE('messenger:set', 'conversationFields', [
-                    {
-                      id: '39467850731803', // Conversation History field ID
-                      value: fullMessage
-                    },
-                    {
-                      id: '39467890996891', // Chat Session ID field ID
-                      value: sessionId
-                    }
-                  ]);
-                  // eslint-disable-next-line no-console
-                  console.log('✅ DEBUG: Conversation fields set successfully');
-                  
-                  // Clear loading since we're done configuring
-                  setLoading(false);
-                } catch (error) {
-                  // eslint-disable-next-line no-console
-                  console.error('❌ DEBUG: Failed to set conversation fields:', error);
-                  setLoading(false);
-                }
-              }, 500); // Faster execution
+              fullMessage += '\n---\n\n🙋‍♀️ I need human support to continue this conversation.';
             } else {
-              // eslint-disable-next-line no-console
-              console.log('🔍 DEBUG: No conversation history found');
-            }
-
-            // Set conversation tags
-            try {
-              window.zE('messenger:set', 'conversationTags', [
-                'chat-transfer', 
-                'support-request', 
-                'web-widget',
-                `session-${sessionId}`
-              ]);
-            } catch (error) {
-              // eslint-disable-next-line no-console
-              console.log('⚠️ Tags not supported, skipping...');
+              fullMessage = '🙋‍♀️ I need human support to continue this conversation.';
             }
             
-            // Show and open the widget immediately
-            window.zE('messenger', 'show');
+            // eslint-disable-next-line no-console
+            console.log('🔍 DEBUG: Formatted message:', fullMessage);
+            
+            // Log in user if we have their info
+            if (user?.name && user?.email) {
+              // eslint-disable-next-line no-console
+              console.log('🔍 DEBUG: Logging in user:', user.name, user.email);
+              window.zE('messenger', 'loginUser', {
+                name: user.name,
+                email: user.email
+              });
+              // eslint-disable-next-line no-console
+              console.log('✅ DEBUG: User logged in successfully');
+            }
+            
+            // Set conversation tags
+            window.zE('messenger', 'set', 'tags', ['chat-transfer', 'support-request']);
+            // eslint-disable-next-line no-console
+            console.log('✅ DEBUG: Tags set successfully');
+            
+            // Open widget immediately 
             window.zE('messenger', 'open');
+            // eslint-disable-next-line no-console
+            console.log('✅ DEBUG: Widget opened successfully');
+            
+            // Use conversation fields to pass metadata to the ticket
+            setTimeout(() => {
+              // eslint-disable-next-line no-console
+              console.log('🔍 DEBUG: Setting conversation fields...');
+              try {
+                window.zE('messenger:set', 'conversationFields', [
+                  {
+                    id: '39467850731803', // Conversation History field ID
+                    value: fullMessage
+                  },
+                  {
+                    id: '39467890996891', // Chat Session ID field ID
+                    value: sessionId
+                  }
+                ]);
+                // eslint-disable-next-line no-console
+                console.log('✅ DEBUG: Conversation fields set successfully');
+                
+                // Clear loading since we're done configuring
+                setLoading(false);
+              } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error('❌ DEBUG: Failed to set conversation fields:', error);
+                setLoading(false);
+              }
+            }, 500);
             
             // eslint-disable-next-line no-console
             console.log('✅ Zendesk widget configured with conversation history');
@@ -201,20 +199,18 @@ const SupportPage = ({ user }) => {
           } catch (error) {
             // eslint-disable-next-line no-console
             console.error('❌ Error configuring Zendesk widget:', error);
-            // Don't show error if widget is visible - just log it
             setLoading(false);
           }
         }
       }, 500);
 
-      // Shorter timeout and don't error if widget appears to be working
+      // Timeout fallback
       setTimeout(() => {
         clearInterval(checkZE);
-        // Force clear loading state after timeout
         setLoading(false);
         // eslint-disable-next-line no-console
         console.log('⏰ Zendesk widget initialization complete');
-      }, 3000); // Reduced timeout
+      }, 3000);
     };
 
     const initializeSupportPage = async () => {
@@ -254,10 +250,9 @@ const SupportPage = ({ user }) => {
 
     // Initialize support page
     initializeSupportPage();
-  }, []); // Empty dependency array - run only once on mount
+  }, []); // Empty dependency array with ESLint disable comment above
 
   const handleBackToWebsite = () => {
-    // Clear the conversation history since user is getting support
     localStorage.removeItem('conversationHistory');
     window.location.href = '/';
   };
@@ -307,52 +302,25 @@ const SupportPage = ({ user }) => {
       </div>
       
       <div className="support-content">
-        <div className="welcome-section">
-          <div className="support-image">
-            <div 
-              style={{
-                width: '100%',
-                height: '300px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '12px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {/* Animated floating elements */}
-              <div className="support-animation">
-                <div className="floating-icon" style={{animationDelay: '0s'}}>💬</div>
-                <div className="floating-icon" style={{animationDelay: '1s'}}>🎧</div>
-                <div className="floating-icon" style={{animationDelay: '2s'}}>⚡</div>
-                <div className="floating-icon" style={{animationDelay: '0.5s'}}>💡</div>
-                <div className="floating-icon" style={{animationDelay: '1.5s'}}>🚀</div>
-              </div>
-              <div style={{
-                fontSize: '4rem',
-                color: 'white',
-                textAlign: 'center',
-                zIndex: 2
-              }}>
-                🎯
-              </div>
+        {loading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Connecting you to support...</p>
+          </div>
+        ) : (
+          <div className="support-ready">
+            <div className="support-animation">
+              <div className="floating-icon" style={{top: '10%', left: '15%', animationDelay: '0s'}}>💬</div>
+              <div className="floating-icon" style={{top: '20%', right: '20%', animationDelay: '1s'}}>🎧</div>
+              <div className="floating-icon" style={{bottom: '30%', left: '10%', animationDelay: '2s'}}>📞</div>
+              <div className="floating-icon" style={{bottom: '15%', right: '15%', animationDelay: '0.5s'}}>💡</div>
+              <div className="floating-icon" style={{top: '40%', left: '50%', animationDelay: '1.5s'}}>🚀</div>
             </div>
           </div>
-          
-          {loading && (
-            <div className="loading-indicator">
-              <div className="loading-spinner"></div>
-              <span>Loading support chat...</span>
-            </div>
-          )}
-        </div>
+        )}
         
-        {/* Zendesk widget will be injected here automatically */}
         <div id="zendesk-widget-container">
-          {/* Widget appears here automatically when loaded */}
+          {/* Zendesk widget appears here automatically */}
         </div>
       </div>
     </div>
