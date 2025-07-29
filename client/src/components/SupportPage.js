@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './SupportPage.css';
 
 const SupportPage = ({ user }) => {
@@ -7,8 +7,19 @@ const SupportPage = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (hasInitialized.current) {
+      // eslint-disable-next-line no-console
+      console.log('🔄 Support page already initialized, skipping...');
+      return;
+    }
+    
+    hasInitialized.current = true;
+    // eslint-disable-next-line no-console
+    console.log('🚀 Initializing support page for the first time...');
     const formatTime = (timestamp) => {
       return new Date(timestamp).toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -63,11 +74,13 @@ const SupportPage = ({ user }) => {
         script.src = 'https://static.zdassets.com/ekr/snippet.js?key=d00c5a70-85da-47ea-bd7d-7445bcc31c38';
         script.async = true;
         
-        script.onload = () => {
-          // eslint-disable-next-line no-console
-          console.log('✅ Zendesk script loaded');
+              script.onload = () => {
+        // eslint-disable-next-line no-console
+        console.log('✅ Zendesk script loaded');
+        setTimeout(() => {
           configureZendeskWidget(conversationHistory);
-        };
+        }, 500); // Small delay to ensure script is fully ready
+      };
         
         script.onerror = () => {
           // eslint-disable-next-line no-console
@@ -77,11 +90,13 @@ const SupportPage = ({ user }) => {
         };
         
         document.head.appendChild(script);
-      } else {
-        // eslint-disable-next-line no-console
-        console.log('✅ Zendesk already loaded');
+          } else {
+      // eslint-disable-next-line no-console
+      console.log('✅ Zendesk already loaded');
+      setTimeout(() => {
         configureZendeskWidget(conversationHistory);
-      }
+      }, 500); // Small delay for consistency
+    }
     };
 
     const configureZendeskWidget = (conversationHistory) => {
@@ -176,8 +191,12 @@ const SupportPage = ({ user }) => {
             // eslint-disable-next-line no-console
             console.log('✅ Zendesk widget configured with conversation history');
             
-            // Clear loading state immediately since widget is ready
-            setLoading(false);
+            // Force clear loading state
+            setTimeout(() => {
+              setLoading(false);
+              // eslint-disable-next-line no-console
+              console.log('🎯 Loading state cleared - widget should be visible');
+            }, 100);
 
           } catch (error) {
             // eslint-disable-next-line no-console
@@ -235,7 +254,7 @@ const SupportPage = ({ user }) => {
 
     // Initialize support page
     initializeSupportPage();
-  }, [sessionId, user?.name, user?.email]); // Simplified dependencies to prevent loops
+  }, []); // Empty dependency array - run only once on mount
 
   const handleBackToWebsite = () => {
     // Clear the conversation history since user is getting support
