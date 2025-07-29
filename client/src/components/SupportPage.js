@@ -9,6 +9,216 @@ const SupportPage = ({ user }) => {
   const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
 
   useEffect(() => {
+    const createSupportTicket = async (conversationHistory) => {
+      try {
+        // eslint-disable-next-line no-console
+        console.log('🎫 Creating support ticket...');
+        
+        const response = await fetch('/api/zendesk/create-ticket', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversationHistory,
+            sessionId,
+            userEmail: user?.email || 'visitor@conversation-api-integration.vercel.app',
+            userName: user?.name || 'Website Visitor'
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          setTicketCreated(true);
+          setTicketId(result.ticketId);
+          // eslint-disable-next-line no-console
+          console.log('✅ Support ticket created:', result.ticketId);
+        } else {
+          throw new Error(result.error || 'Failed to create ticket');
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('❌ Failed to create support ticket:', error);
+        setError(`Failed to create support ticket: ${error.message}`);
+        throw error;
+      }
+    };
+
+    const initializeZendeskWidget = (conversationHistory) => {
+      // eslint-disable-next-line no-console
+      console.log('🔄 Initializing Zendesk widget...');
+      
+      // Load Zendesk script if not already loaded
+      if (!window.zE) {
+        const script = document.createElement('script');
+        script.id = 'ze-snippet';
+        script.src = 'https://static.zdassets.com/ekr/snippet.js?key=d00c5a70-85da-47ea-bd7d-7445bcc31c38';
+        script.async = true;
+        
+        script.onload = () => {
+          // eslint-disable-next-line no-console
+          console.log('✅ Zendesk script loaded');
+          configureZendeskWidget(conversationHistory);
+        };
+        
+        script.onerror = () => {
+          // eslint-disable-next-line no-console
+          console.error('❌ Failed to load Zendesk script');
+          setError('Failed to load support widget. Please refresh the page.');
+          setLoading(false);
+        };
+        
+        document.head.appendChild(script);
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('✅ Zendesk already loaded');
+        configureZendeskWidget(conversationHistory);
+      }
+    };
+
+    const configureZendeskWidget = (conversationHistory) => {
+      // Wait for Zendesk to be ready
+      const checkZE = setInterval(() => {
+        if (window.zE) {
+          clearInterval(checkZE);
+          
+          try {
+            // Set user information first
+            if (user?.name && user?.email) {
+              window.zE('messenger:set', 'userFields', {
+                name: user.name,
+                email: user.email
+              });
+            }
+
+            // Debug and send conversation history
+            // eslint-disable-next-line no-console
+            console.log('🔍 DEBUG: Conversation history received:', conversationHistory);
+            // eslint-disable-next-line no-console
+            console.log('🔍 DEBUG: History length:', conversationHistory.length);
+            
+            if (conversationHistory && conversationHistory.length > 0) {
+              // eslint-disable-next-line no-console
+              console.log('🔍 DEBUG: Processing conversation history...');
+              
+              // Set user info first
+              window.zE('messenger:set', 'prefill', {
+                name: {
+                  value: user?.name || 'Website Visitor',
+                  readOnly: true
+                },
+                email: {
+                  value: user?.email || 'visitor@conversation-api-integration.vercel.app',
+                  readOnly: true
+                }
+              });
+
+              // Format history as one initial message
+              const historyText = conversationHistory.map(msg => {
+                const time = formatTime(msg.timestamp);
+                const sender = msg.sender === 'user' ? '👤 Me' : '🤖 Assistant';
+                return `${time} - ${sender}: ${msg.text}`;
+              }).join('\n');
+
+              const fullMessage = `Previous conversation:\n\n${historyText}\n\n---\n🎯 I need human support to continue this conversation.`;
+              
+              // eslint-disable-next-line no-console
+              console.log('🔍 DEBUG: Formatted message:', fullMessage);
+              
+              // Try multiple approaches to ensure the conversation history is visible
+              
+              // Approach 1: Set prefill message (should appear in input field)
+              setTimeout(() => {
+                // eslint-disable-next-line no-console
+                console.log('🔍 DEBUG: Attempting prefill approach...');
+                
+                try {
+                  window.zE('messenger:set', 'prefill', {
+                    name: {
+                      value: user?.name || 'Website Visitor',
+                      readOnly: false
+                    },
+                    email: {
+                      value: user?.email || 'visitor@conversation-api-integration.vercel.app',
+                      readOnly: false
+                    },
+                    message: {
+                      value: fullMessage,
+                      readOnly: false
+                    }
+                  });
+                  // eslint-disable-next-line no-console
+                  console.log('✅ DEBUG: Prefill set successfully');
+                } catch (error) {
+                  // eslint-disable-next-line no-console
+                  console.error('❌ DEBUG: Prefill failed:', error);
+                }
+              }, 1000);
+
+              // Approach 2: Try conversation fields 
+              setTimeout(() => {
+                // eslint-disable-next-line no-console
+                console.log('🔍 DEBUG: Attempting conversation fields approach...');
+                
+                try {
+                  window.zE('messenger:set', 'conversationFields', [
+                    {
+                      id: 'conversation_history',
+                      value: fullMessage
+                    }
+                  ]);
+                  // eslint-disable-next-line no-console
+                  console.log('✅ DEBUG: Conversation fields set successfully');
+                } catch (error) {
+                  // eslint-disable-next-line no-console
+                  console.error('❌ DEBUG: Conversation fields failed:', error);
+                }
+              }, 1500);
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('🔍 DEBUG: No conversation history found');
+            }
+
+            // Set conversation tags
+            window.zE('messenger:set', 'conversationTags', [
+              'chat-transfer', 
+              'support-request', 
+              'web-widget',
+              `session-${sessionId}`
+            ]);
+
+            // Configure widget appearance
+            window.zE('messenger:set', 'locale', 'en-US');
+            
+            // Show and open the widget immediately
+            window.zE('messenger', 'show');
+            window.zE('messenger', 'open');
+            
+            // eslint-disable-next-line no-console
+            console.log('✅ Zendesk widget configured with conversation history');
+            setLoading(false);
+
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('❌ Error configuring Zendesk widget:', error);
+            // Don't show error if widget is visible - just log it
+            setLoading(false);
+          }
+        }
+      }, 500);
+
+      // Shorter timeout and don't error if widget appears to be working
+      setTimeout(() => {
+        clearInterval(checkZE);
+        if (loading) {
+          // eslint-disable-next-line no-console
+          console.log('⏰ Zendesk widget check timeout - but widget may still be working');
+          setLoading(false); // Don't set error, just stop loading
+        }
+      }, 8000);
+    };
+
     const initializeSupportPage = async () => {
       try {
         // Get conversation history from localStorage
@@ -21,11 +231,11 @@ const SupportPage = ({ user }) => {
             // eslint-disable-next-line no-console
             console.log('🔍 DEBUG: Number of messages:', history.length);
             return history;
-                } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('❌ Error retrieving conversation history:', error);
-        return [];
-      }
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('❌ Error retrieving conversation history:', error);
+            return [];
+          }
         };
 
         const conversationHistory = getConversationHistory();
@@ -36,230 +246,17 @@ const SupportPage = ({ user }) => {
         // Initialize Zendesk widget
         initializeZendeskWidget(conversationHistory);
         
-          } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Failed to initialize support page:', error);
-      setError('Failed to initialize support. Please try again.');
-      setLoading(false);
-    }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('❌ Failed to initialize support page:', error);
+        setError('Failed to initialize support. Please try again.');
+        setLoading(false);
+      }
     };
 
     // Initialize support page
     initializeSupportPage();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array is fine - this should only run once on mount
-
-  const createSupportTicket = async (conversationHistory) => {
-    try {
-      // eslint-disable-next-line no-console
-      console.log('🎫 Creating support ticket...');
-      
-      const response = await fetch('/api/zendesk/create-ticket', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          conversationHistory,
-          sessionId,
-          userEmail: user?.email || 'visitor@conversation-api-integration.vercel.app',
-          userName: user?.name || 'Website Visitor'
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setTicketCreated(true);
-        setTicketId(result.ticketId);
-        // eslint-disable-next-line no-console
-        console.log('✅ Support ticket created:', result.ticketId);
-      } else {
-        throw new Error(result.error || 'Failed to create ticket');
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Failed to create support ticket:', error);
-      setError(`Failed to create support ticket: ${error.message}`);
-      throw error;
-    }
-  };
-
-  const initializeZendeskWidget = (conversationHistory) => {
-    // eslint-disable-next-line no-console
-    console.log('🔄 Initializing Zendesk widget...');
-    
-    // Load Zendesk script if not already loaded
-    if (!window.zE) {
-      const script = document.createElement('script');
-      script.id = 'ze-snippet';
-      script.src = 'https://static.zdassets.com/ekr/snippet.js?key=d00c5a70-85da-47ea-bd7d-7445bcc31c38';
-      script.async = true;
-      
-      script.onload = () => {
-        // eslint-disable-next-line no-console
-        console.log('✅ Zendesk script loaded');
-        configureZendeskWidget(conversationHistory);
-      };
-      
-      script.onerror = () => {
-        // eslint-disable-next-line no-console
-        console.error('❌ Failed to load Zendesk script');
-        setError('Failed to load support widget. Please refresh the page.');
-        setLoading(false);
-      };
-      
-      document.head.appendChild(script);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('✅ Zendesk already loaded');
-      configureZendeskWidget(conversationHistory);
-    }
-  };
-
-  const configureZendeskWidget = (conversationHistory) => {
-    // Wait for Zendesk to be ready
-    const checkZE = setInterval(() => {
-      if (window.zE) {
-        clearInterval(checkZE);
-        
-        try {
-          // Set user information first
-          if (user?.name && user?.email) {
-            window.zE('messenger:set', 'userFields', {
-              name: user.name,
-              email: user.email
-            });
-          }
-
-          // Debug and send conversation history
-          // eslint-disable-next-line no-console
-          console.log('🔍 DEBUG: Conversation history received:', conversationHistory);
-          // eslint-disable-next-line no-console
-          console.log('🔍 DEBUG: History length:', conversationHistory.length);
-          
-          if (conversationHistory && conversationHistory.length > 0) {
-            // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: Processing conversation history...');
-            
-            // Set user info first
-            window.zE('messenger:set', 'prefill', {
-              name: {
-                value: user?.name || 'Website Visitor',
-                readOnly: true
-              },
-              email: {
-                value: user?.email || 'visitor@conversation-api-integration.vercel.app',
-                readOnly: true
-              }
-            });
-
-            // Format history as one initial message
-            const historyText = conversationHistory.map(msg => {
-              const time = formatTime(msg.timestamp);
-              const sender = msg.sender === 'user' ? '👤 Me' : '🤖 Assistant';
-              return `${time} - ${sender}: ${msg.text}`;
-            }).join('\n');
-
-            const fullMessage = `Previous conversation:\n\n${historyText}\n\n---\n🎯 I need human support to continue this conversation.`;
-            
-            // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: Formatted message:', fullMessage);
-            
-            // Try multiple approaches to ensure the conversation history is visible
-            
-            // Approach 1: Set prefill message (should appear in input field)
-            setTimeout(() => {
-              // eslint-disable-next-line no-console
-              console.log('🔍 DEBUG: Attempting prefill approach...');
-              
-              try {
-                window.zE('messenger:set', 'prefill', {
-                  name: {
-                    value: user?.name || 'Website Visitor',
-                    readOnly: false
-                  },
-                  email: {
-                    value: user?.email || 'visitor@conversation-api-integration.vercel.app',
-                    readOnly: false
-                  },
-                  message: {
-                    value: fullMessage,
-                    readOnly: false
-                  }
-                });
-                // eslint-disable-next-line no-console
-                console.log('✅ DEBUG: Prefill set successfully');
-                              } catch (error) {
-                  // eslint-disable-next-line no-console
-                  console.error('❌ DEBUG: Prefill failed:', error);
-                }
-            }, 1000);
-
-            // Approach 2: Try conversation fields 
-            setTimeout(() => {
-              // eslint-disable-next-line no-console
-              console.log('🔍 DEBUG: Attempting conversation fields approach...');
-              
-              try {
-                window.zE('messenger:set', 'conversationFields', [
-                  {
-                    id: 'conversation_history',
-                    value: fullMessage
-                  }
-                ]);
-                // eslint-disable-next-line no-console
-                console.log('✅ DEBUG: Conversation fields set successfully');
-                              } catch (error) {
-                  // eslint-disable-next-line no-console
-                  console.error('❌ DEBUG: Conversation fields failed:', error);
-                }
-            }, 1500);
-          } else {
-            // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: No conversation history found');
-          }
-
-          // Set conversation tags
-          window.zE('messenger:set', 'conversationTags', [
-            'chat-transfer', 
-            'support-request', 
-            'web-widget',
-            `session-${sessionId}`
-          ]);
-
-          // Configure widget appearance
-          window.zE('messenger:set', 'locale', 'en-US');
-          
-          // Show and open the widget immediately
-          window.zE('messenger', 'show');
-          window.zE('messenger', 'open');
-          
-          // eslint-disable-next-line no-console
-          console.log('✅ Zendesk widget configured with conversation history');
-          setLoading(false);
-
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('❌ Error configuring Zendesk widget:', error);
-          // Don't show error if widget is visible - just log it
-          setLoading(false);
-        }
-      }
-    }, 500);
-
-    // Shorter timeout and don't error if widget appears to be working
-    setTimeout(() => {
-      clearInterval(checkZE);
-      if (loading) {
-        // eslint-disable-next-line no-console
-        console.log('⏰ Zendesk widget check timeout - but widget may still be working');
-        setLoading(false); // Don't set error, just stop loading
-      }
-    }, 8000);
-  };
-
-
+  }, [sessionId, user, setTicketCreated, setTicketId, setError, setLoading, loading]);
 
   const formatConversationHistory = (history) => {
     if (!history || history.length === 0) {
@@ -279,8 +276,6 @@ const SupportPage = ({ user }) => {
       minute: '2-digit'
     });
   };
-
-
 
   const handleBackToWebsite = () => {
     // Clear the conversation history since user is getting support
