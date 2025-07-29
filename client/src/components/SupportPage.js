@@ -16,7 +16,9 @@ const SupportPage = ({ user }) => {
           try {
             const stored = localStorage.getItem('conversationHistory');
             const history = stored ? JSON.parse(stored) : [];
+            // eslint-disable-next-line no-console
             console.log('🔍 DEBUG: Retrieved conversation history:', history);
+            // eslint-disable-next-line no-console
             console.log('🔍 DEBUG: Number of messages:', history.length);
             return history;
           } catch (error) {
@@ -122,10 +124,13 @@ const SupportPage = ({ user }) => {
           }
 
           // Debug and send conversation history
+          // eslint-disable-next-line no-console
           console.log('🔍 DEBUG: Conversation history received:', conversationHistory);
+          // eslint-disable-next-line no-console
           console.log('🔍 DEBUG: History length:', conversationHistory.length);
           
           if (conversationHistory && conversationHistory.length > 0) {
+            // eslint-disable-next-line no-console
             console.log('🔍 DEBUG: Processing conversation history...');
             
             // Set user info first
@@ -149,12 +154,14 @@ const SupportPage = ({ user }) => {
 
             const fullMessage = `Previous conversation:\n\n${historyText}\n\n---\n🎯 I need human support to continue this conversation.`;
             
+            // eslint-disable-next-line no-console
             console.log('🔍 DEBUG: Formatted message:', fullMessage);
             
             // Try multiple approaches to ensure the conversation history is visible
             
             // Approach 1: Set prefill message (should appear in input field)
             setTimeout(() => {
+              // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: Attempting prefill approach...');
               
               try {
@@ -172,6 +179,7 @@ const SupportPage = ({ user }) => {
                     readOnly: false
                   }
                 });
+                // eslint-disable-next-line no-console
                 console.log('✅ DEBUG: Prefill set successfully');
               } catch (error) {
                 console.error('❌ DEBUG: Prefill failed:', error);
@@ -180,6 +188,7 @@ const SupportPage = ({ user }) => {
 
             // Approach 2: Try conversation fields 
             setTimeout(() => {
+              // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: Attempting conversation fields approach...');
               
               try {
@@ -189,12 +198,14 @@ const SupportPage = ({ user }) => {
                     value: fullMessage
                   }
                 ]);
+                // eslint-disable-next-line no-console
                 console.log('✅ DEBUG: Conversation fields set successfully');
               } catch (error) {
                 console.error('❌ DEBUG: Conversation fields failed:', error);
               }
             }, 1500);
           } else {
+            // eslint-disable-next-line no-console
             console.log('🔍 DEBUG: No conversation history found');
           }
 

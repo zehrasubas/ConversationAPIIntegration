@@ -159,18 +159,22 @@ const ChatBox = ({ user }) => {
   const handleGetSupport = () => {
     console.log('🎫 Redirecting to support page...');
     console.log('📝 Current conversation history:', messages);
+    // eslint-disable-next-line no-console
     console.log('🔍 DEBUG: Messages length:', messages.length);
     
     // Force save conversation history before redirect
     try {
       localStorage.setItem('conversationHistory', JSON.stringify(messages));
+      // eslint-disable-next-line no-console
       console.log('💾 DEBUG: Manually saved conversation history before redirect');
       
       // Verify it was saved
       const saved = localStorage.getItem('conversationHistory');
       const parsed = saved ? JSON.parse(saved) : [];
+      // eslint-disable-next-line no-console
       console.log('✅ DEBUG: Verified saved history:', parsed);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('❌ Error saving conversation history:', error);
     }
     

@@ -8,8 +8,22 @@
 - Test that existing features still work after changes
 
 ## Code Style
+- Always ensure ESLint compliance before making changes
+- When adding console.log statements for debugging, use `// eslint-disable-next-line no-console` above each console statement
+- Avoid unused variables and imports - remove them before committing
+- Use proper React hooks dependency arrays to avoid warnings
+- When in doubt about ESLint compliance, run the build locally first
 
+## ESLint Compliance Rules
+- NEVER ignore ESLint errors in production code
+- For debugging console statements, always add eslint-disable comments
+- Remove unused imports immediately after editing
+- Fix missing dependency warnings in useEffect hooks
+- Test builds locally before deployment to catch ESLint issues early
 
 ## Project Context
 - This is a project to implement conversation API features from facebook
 - Key existing features that must not be broken: login, messenger
+- Login app id: 21102398933175
+- Messenger app id: 30902396742455
+- We deploy this project to vercel, the app url https://conversation-api-integration.vercel.app/
