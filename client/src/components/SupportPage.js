@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './SupportPage.css';
 
 const SupportPage = ({ user }) => {
@@ -6,30 +6,43 @@ const SupportPage = ({ user }) => {
   const [ticketId, setTicketId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sessionId] = useState(() => generateSessionId());
+  const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
 
   useEffect(() => {
+    const initializeSupportPage = async () => {
+      try {
+        // Get conversation history from localStorage
+        const getConversationHistory = () => {
+          try {
+            const stored = localStorage.getItem('conversationHistory');
+            const history = stored ? JSON.parse(stored) : [];
+            console.log('📝 Retrieved conversation history:', history.length, 'messages');
+            return history;
+          } catch (error) {
+            console.error('❌ Error retrieving conversation history:', error);
+            return [];
+          }
+        };
+
+        const conversationHistory = getConversationHistory();
+        
+        // Create Zendesk ticket with conversation history
+        await createSupportTicket(conversationHistory);
+        
+        // Initialize Zendesk widget
+        initializeZendeskWidget(conversationHistory);
+        
+      } catch (error) {
+        console.error('❌ Failed to initialize support page:', error);
+        setError('Failed to initialize support. Please try again.');
+        setLoading(false);
+      }
+    };
+
     // Initialize support page
     initializeSupportPage();
-  }, []);
-
-  const initializeSupportPage = async () => {
-    try {
-      // Get conversation history from localStorage
-      const conversationHistory = getConversationHistory();
-      
-      // Create Zendesk ticket with conversation history
-      await createSupportTicket(conversationHistory);
-      
-      // Initialize Zendesk widget
-      initializeZendeskWidget(conversationHistory);
-      
-    } catch (error) {
-      console.error('❌ Failed to initialize support page:', error);
-      setError('Failed to initialize support. Please try again.');
-      setLoading(false);
-    }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array is fine - this should only run once on mount
 
   const createSupportTicket = async (conversationHistory) => {
     try {
@@ -172,17 +185,7 @@ const SupportPage = ({ user }) => {
     }, 15000);
   };
 
-  const getConversationHistory = () => {
-    try {
-      const stored = localStorage.getItem('conversationHistory');
-      const history = stored ? JSON.parse(stored) : [];
-      console.log('📝 Retrieved conversation history:', history.length, 'messages');
-      return history;
-    } catch (error) {
-      console.error('❌ Error retrieving conversation history:', error);
-      return [];
-    }
-  };
+
 
   const formatConversationHistory = (history) => {
     if (!history || history.length === 0) {
@@ -200,9 +203,7 @@ const SupportPage = ({ user }) => {
     }).join('\n');
   };
 
-  const generateSessionId = () => {
-    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  };
+
 
   const handleBackToWebsite = () => {
     // Clear the conversation history since user is getting support
