@@ -16,7 +16,8 @@ const SupportPage = ({ user }) => {
           try {
             const stored = localStorage.getItem('conversationHistory');
             const history = stored ? JSON.parse(stored) : [];
-            console.log('📝 Retrieved conversation history:', history.length, 'messages');
+            console.log('🔍 DEBUG: Retrieved conversation history:', history);
+            console.log('🔍 DEBUG: Number of messages:', history.length);
             return history;
           } catch (error) {
             console.error('❌ Error retrieving conversation history:', error);
@@ -120,11 +121,14 @@ const SupportPage = ({ user }) => {
             });
           }
 
-          // Send conversation history as actual messages
-          const historyText = formatConversationHistory(conversationHistory);
-          if (historyText && historyText !== 'No previous conversation history.' && conversationHistory.length > 0) {
+          // Debug and send conversation history
+          console.log('🔍 DEBUG: Conversation history received:', conversationHistory);
+          console.log('🔍 DEBUG: History length:', conversationHistory.length);
+          
+          if (conversationHistory && conversationHistory.length > 0) {
+            console.log('🔍 DEBUG: Processing conversation history...');
             
-            // Set user info
+            // Set user info first
             window.zE('messenger:set', 'prefill', {
               name: {
                 value: user?.name || 'Website Visitor',
@@ -136,23 +140,62 @@ const SupportPage = ({ user }) => {
               }
             });
 
-            // Wait for widget to fully load, then send conversation history
-            setTimeout(() => {
-              // Send conversation history as individual messages
-              conversationHistory.forEach((message, index) => {
-                setTimeout(() => {
-                  const formattedMessage = `${formatTime(message.timestamp)} - ${message.sender === 'user' ? '👤 Me' : '🤖 Assistant'}: ${message.text}`;
-                  
-                  // Use Zendesk's API to send message
-                  window.zE('messenger', 'sendMessage', formattedMessage);
-                }, index * 500); // Delay each message by 500ms
-              });
+            // Format history as one initial message
+            const historyText = conversationHistory.map(msg => {
+              const time = formatTime(msg.timestamp);
+              const sender = msg.sender === 'user' ? '👤 Me' : '🤖 Assistant';
+              return `${time} - ${sender}: ${msg.text}`;
+            }).join('\n');
 
-              // Send a final message indicating transfer to human support
-              setTimeout(() => {
-                window.zE('messenger', 'sendMessage', '---\n🎯 I need human support to continue this conversation.');
-              }, conversationHistory.length * 500 + 1000);
-            }, 2000);
+            const fullMessage = `Previous conversation:\n\n${historyText}\n\n---\n🎯 I need human support to continue this conversation.`;
+            
+            console.log('🔍 DEBUG: Formatted message:', fullMessage);
+            
+            // Try multiple approaches to ensure the conversation history is visible
+            
+            // Approach 1: Set prefill message (should appear in input field)
+            setTimeout(() => {
+              console.log('🔍 DEBUG: Attempting prefill approach...');
+              
+              try {
+                window.zE('messenger:set', 'prefill', {
+                  name: {
+                    value: user?.name || 'Website Visitor',
+                    readOnly: false
+                  },
+                  email: {
+                    value: user?.email || 'visitor@conversation-api-integration.vercel.app',
+                    readOnly: false
+                  },
+                  message: {
+                    value: fullMessage,
+                    readOnly: false
+                  }
+                });
+                console.log('✅ DEBUG: Prefill set successfully');
+              } catch (error) {
+                console.error('❌ DEBUG: Prefill failed:', error);
+              }
+            }, 1000);
+
+            // Approach 2: Try conversation fields 
+            setTimeout(() => {
+              console.log('🔍 DEBUG: Attempting conversation fields approach...');
+              
+              try {
+                window.zE('messenger:set', 'conversationFields', [
+                  {
+                    id: 'conversation_history',
+                    value: fullMessage
+                  }
+                ]);
+                console.log('✅ DEBUG: Conversation fields set successfully');
+              } catch (error) {
+                console.error('❌ DEBUG: Conversation fields failed:', error);
+              }
+            }, 1500);
+          } else {
+            console.log('🔍 DEBUG: No conversation history found');
           }
 
           // Set conversation tags

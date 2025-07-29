@@ -159,8 +159,21 @@ const ChatBox = ({ user }) => {
   const handleGetSupport = () => {
     console.log('🎫 Redirecting to support page...');
     console.log('📝 Current conversation history:', messages);
+    console.log('🔍 DEBUG: Messages length:', messages.length);
     
-    // Conversation history is already saved to localStorage by useEffect
+    // Force save conversation history before redirect
+    try {
+      localStorage.setItem('conversationHistory', JSON.stringify(messages));
+      console.log('💾 DEBUG: Manually saved conversation history before redirect');
+      
+      // Verify it was saved
+      const saved = localStorage.getItem('conversationHistory');
+      const parsed = saved ? JSON.parse(saved) : [];
+      console.log('✅ DEBUG: Verified saved history:', parsed);
+    } catch (error) {
+      console.error('❌ Error saving conversation history:', error);
+    }
+    
     // Redirect to support page
     window.location.href = '/support';
   };
