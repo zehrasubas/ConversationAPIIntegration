@@ -75,12 +75,7 @@ const SupportPage = ({ user }) => {
     // eslint-disable-next-line no-console
     console.log('🚀 Initializing support page for the first time...');
     
-    const formatTime = (timestamp) => {
-      return new Date(timestamp).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
+
 
     const replayConversationHistory = async (conversationHistory) => {
       try {
