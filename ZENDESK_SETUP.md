@@ -11,8 +11,9 @@ This integration uses **Zendesk Sunshine Conversations API** to create conversat
 Add these environment variables to your Vercel deployment:
 
 ```bash
-ZENDESK_SUNSHINE_APP_ID=your-app-id        # Your Sunshine Conversations App ID
-ZENDESK_SUNSHINE_API_KEY=your-api-key      # Your Sunshine Conversations API Key
+ZENDESK_SUNSHINE_APP_ID=your-app-id        # Your Sunshine Conversations App ID (without app_ prefix)
+ZENDESK_SUNSHINE_KEY_ID=your-key-id        # Your API Key ID (with app_ prefix)
+ZENDESK_SUNSHINE_SECRET=your-secret        # Your API Secret Key
 ```
 
 ## Setup Steps
@@ -31,8 +32,8 @@ ZENDESK_SUNSHINE_API_KEY=your-api-key      # Your Sunshine Conversations API Key
 1. In your Sunshine Conversations app settings
 2. Go to **Settings** → **API keys**
 3. Click **Create API key**
-4. Copy the generated **Key ID** and **Secret**
-5. Use the **Key ID** (with `app_` prefix) as your API key
+4. Copy the generated **Key ID** (starts with `app_`) and **Secret**
+5. You'll need both values for authentication
 
 ### 4. Connect to Zendesk
 1. In Sunshine Conversations, go to **Integrations**
@@ -43,7 +44,10 @@ ZENDESK_SUNSHINE_API_KEY=your-api-key      # Your Sunshine Conversations API Key
 ### 5. Add Environment Variables to Vercel
 1. Go to your Vercel project dashboard
 2. Navigate to **Settings** → **Environment Variables**
-3. Add the two variables listed above
+3. Add the three variables listed above:
+   - `ZENDESK_SUNSHINE_APP_ID` = `67a0e949f0305f4a391e9d97` (example)
+   - `ZENDESK_SUNSHINE_KEY_ID` = `app_67a0e949f0305f4a391e9d97` (example) 
+   - `ZENDESK_SUNSHINE_SECRET` = `sk-1a2b3c4d5e6f...` (example)
 
 ## How It Works
 
@@ -93,8 +97,11 @@ Use this example flow to verify everything works:
 Make sure you have these set in Vercel:
 ```bash
 ZENDESK_SUNSHINE_APP_ID=67a0e949f0305f4a391e9d97
-ZENDESK_SUNSHINE_API_KEY=app_67a0e949f0305f4a391e9d97:sk-1a2b3c4d5e6f...
+ZENDESK_SUNSHINE_KEY_ID=app_67a0e949f0305f4a391e9d97  
+ZENDESK_SUNSHINE_SECRET=sk-1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d
 ```
+
+**Important**: The Key ID and Secret are separate values from your Sunshine Conversations API key creation.
 
 ## Success Indicators
 

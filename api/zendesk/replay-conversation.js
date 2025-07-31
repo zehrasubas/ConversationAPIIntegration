@@ -22,14 +22,15 @@ export default async function handler(req, res) {
 
     // Get Sunshine Conversations credentials from environment
     const appId = process.env.ZENDESK_SUNSHINE_APP_ID;
-    const apiKey = process.env.ZENDESK_SUNSHINE_API_KEY;
+    const keyId = process.env.ZENDESK_SUNSHINE_KEY_ID;
+    const secret = process.env.ZENDESK_SUNSHINE_SECRET;
 
-    if (!appId || !apiKey) {
-      throw new Error('Missing Sunshine Conversations credentials. Please set ZENDESK_SUNSHINE_APP_ID and ZENDESK_SUNSHINE_API_KEY environment variables.');
+    if (!appId || !keyId || !secret) {
+      throw new Error('Missing Sunshine Conversations credentials. Please set ZENDESK_SUNSHINE_APP_ID, ZENDESK_SUNSHINE_KEY_ID, and ZENDESK_SUNSHINE_SECRET environment variables.');
     }
 
     const sunshineApiUrl = `https://api.smooch.io/v2/apps/${appId}`;
-    const authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+    const authHeader = `Basic ${Buffer.from(`${keyId}:${secret}`).toString('base64')}`;
 
     // Step 1: Format conversation summary for Sunshine
     const formatConversationSummary = (messages) => {
