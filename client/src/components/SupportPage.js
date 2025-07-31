@@ -66,7 +66,7 @@ const SupportPage = ({ user }) => {
       }
     };
 
-    const initializeZendeskWidget = (conversationHistory) => {
+    const initializeZendeskWidget = (conversationHistory, replayResult = null) => {
       // Load Zendesk script if not already loaded
       if (!window.zE) {
         // eslint-disable-next-line no-console
@@ -102,7 +102,7 @@ const SupportPage = ({ user }) => {
       }
     };
 
-    const configureZendeskWidget = (conversationHistory) => {
+    const configureZendeskWidget = (conversationHistory, replayResult = null) => {
       // eslint-disable-next-line no-console
       console.log('⚙️ Configuring Zendesk widget...');
       
@@ -112,38 +112,17 @@ const SupportPage = ({ user }) => {
           clearInterval(checkZE);
           
           try {
-            // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: Processing conversation history...');
-            
-            // Process conversation history
-            let fullMessage = '';
-            if (conversationHistory && conversationHistory.length > 0) {
-              // eslint-disable-next-line no-console
-              console.log('🔍 DEBUG: History length:', conversationHistory.length);
-              
-              fullMessage = 'Previous conversation:\n\n';
-              
-              conversationHistory.forEach((message) => {
-                const timeStr = formatTime(message.timestamp);
-                const sender = message.type === 'user' ? '👤 Me' : '🤖 Bot';
-                fullMessage += `${timeStr} - ${sender}: ${message.message}\n`;
-              });
-              
-              fullMessage += '\n---\n\n🙋‍♀️ I need human support to continue this conversation.';
-            } else {
-              fullMessage = '🙋‍♀️ I need human support to continue this conversation.';
-            }
-            
-            // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: Formatted message:', fullMessage);
-            
             // Log in user if we have their info
             if (user?.name && user?.email) {
               // eslint-disable-next-line no-console
               console.log('🔍 DEBUG: Logging in user:', user.name, user.email);
               window.zE('messenger', 'loginUser', {
                 name: user.name,
-                email: user.email
+                email: user.email,
+                // If we have a replayed conversation, use the external ID
+                ...(replayResult && { 
+                  externalId: `website_user_${user.email.replace('@', '_at_')}` 
+                })
               });
               // eslint-disable-next-line no-console
               console.log('✅ DEBUG: User logged in successfully');
@@ -153,35 +132,72 @@ const SupportPage = ({ user }) => {
             window.zE('messenger', 'set', 'tags', ['chat-transfer', 'support-request']);
             // eslint-disable-next-line no-console
             console.log('✅ DEBUG: Tags set successfully');
+
+            // If we have a replayed conversation, try to open that specific conversation
+            if (replayResult?.conversationId) {
+              // eslint-disable-next-line no-console
+              console.log('🎯 Opening specific conversation:', replayResult.conversationId);
+              
+              // Try to navigate to the specific conversation
+              try {
+                window.zE('messenger', 'set', 'conversationId', replayResult.conversationId);
+              } catch (error) {
+                // eslint-disable-next-line no-console
+                console.log('⚠️ Could not set specific conversation, opening normally');
+              }
+            }
             
-            // Open widget immediately 
+            // Open widget
             window.zE('messenger', 'open');
             // eslint-disable-next-line no-console
             console.log('✅ DEBUG: Widget opened successfully');
             
-            // Use conversation fields to pass metadata to the ticket
+            // Set metadata for the conversation
             setTimeout(() => {
-              // eslint-disable-next-line no-console
-              console.log('🔍 DEBUG: Setting conversation fields...');
               try {
-                window.zE('messenger:set', 'conversationFields', [
-                  {
-                    id: '39467850731803', // Conversation History field ID
-                    value: fullMessage
-                  },
-                  {
-                    id: '39467890996891', // Chat Session ID field ID
-                    value: sessionId
+                if (replayResult?.conversationId) {
+                  // If we have a replayed conversation, just set basic metadata
+                  // eslint-disable-next-line no-console
+                  console.log('✅ Using replayed conversation with full history');
+                  setTicketCreated(true);
+                  setTicketId(replayResult.conversationId);
+                } else {
+                  // Fallback to traditional conversation fields approach
+                  // eslint-disable-next-line no-console
+                  console.log('🔍 DEBUG: Setting conversation fields for fallback...');
+                  
+                  let fullMessage = '';
+                  if (conversationHistory && conversationHistory.length > 0) {
+                    fullMessage = 'Previous conversation:\n\n';
+                    conversationHistory.forEach((message) => {
+                      const timeStr = formatTime(message.timestamp);
+                      const sender = message.sender === 'user' ? '👤 Customer' : '🤖 System';
+                      fullMessage += `${timeStr} - ${sender}: ${message.text}\n`;
+                    });
+                    fullMessage += '\n---\n\n🙋‍♀️ Customer requested human support.';
+                  } else {
+                    fullMessage = '🙋‍♀️ Customer requested human support.';
                   }
-                ]);
-                // eslint-disable-next-line no-console
-                console.log('✅ DEBUG: Conversation fields set successfully');
+
+                  window.zE('messenger:set', 'conversationFields', [
+                    {
+                      id: '39467850731803', // Conversation History field ID
+                      value: fullMessage
+                    },
+                    {
+                      id: '39467890996891', // Chat Session ID field ID
+                      value: sessionId
+                    }
+                  ]);
+                  // eslint-disable-next-line no-console
+                  console.log('✅ DEBUG: Conversation fields set successfully');
+                }
                 
                 // Clear loading since we're done configuring
                 setLoading(false);
               } catch (error) {
                 // eslint-disable-next-line no-console
-                console.error('❌ DEBUG: Failed to set conversation fields:', error);
+                console.error('❌ DEBUG: Failed to configure conversation:', error);
                 setLoading(false);
               }
             }, 500);
@@ -234,11 +250,19 @@ const SupportPage = ({ user }) => {
 
         const conversationHistory = getConversationHistory();
         
-        // Create Zendesk ticket with conversation history
-        await createSupportTicket(conversationHistory);
+        // Replay conversation history in Zendesk
+        let replayResult = null;
+        try {
+          replayResult = await replayConversationHistory(conversationHistory);
+          // eslint-disable-next-line no-console
+          console.log('🌅 Successfully replayed conversation history');
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('❌ Error replaying conversation, falling back to traditional approach:', error);
+        }
         
         // Initialize Zendesk widget
-        initializeZendeskWidget(conversationHistory);
+        initializeZendeskWidget(conversationHistory, replayResult);
         
       } catch (error) {
         // eslint-disable-next-line no-console
