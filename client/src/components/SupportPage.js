@@ -11,7 +11,7 @@ const SupportPage = ({ user }) => {
   useEffect(() => {
     const clearZendeskData = () => {
       try {
-        // Clear all Zendesk-related data
+        // Clear Zendesk-related data (but NOT conversationHistory yet - we need it first!)
         localStorage.removeItem('zE_oauth');
         localStorage.removeItem('ZD-store');
         localStorage.removeItem('ZD-suid');
@@ -349,15 +349,21 @@ const SupportPage = ({ user }) => {
 
     const initializeSupportPage = async () => {
       try {
-        // Get conversation history from localStorage
+        // IMPORTANT: Get conversation history FIRST before clearing anything
         const getConversationHistory = () => {
           try {
             const stored = localStorage.getItem('conversationHistory');
             const history = stored ? JSON.parse(stored) : [];
             // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: Retrieved conversation history:', history);
-            // eslint-disable-next-line no-console
-            console.log('🔍 DEBUG: Number of messages:', history.length);
+            console.log('📚 Retrieved conversation history BEFORE clearing:', history);
+            console.log('📊 Found', history.length, 'messages from main chat');
+            
+            // Log each message for debugging
+            history.forEach((msg, index) => {
+              // eslint-disable-next-line no-console
+              console.log(`📝 Message ${index + 1}: [${msg.sender}] ${msg.text}`);
+            });
+            
             return history;
           } catch (error) {
             // eslint-disable-next-line no-console
@@ -366,7 +372,11 @@ const SupportPage = ({ user }) => {
           }
         };
 
+        // GET the conversation history first
         const conversationHistory = getConversationHistory();
+        
+        // NOW clear localStorage for future sessions (but keep the history we just got)
+        localStorage.removeItem('conversationHistory');
         
         // Replay conversation history in Zendesk
         let replayResult = null;
