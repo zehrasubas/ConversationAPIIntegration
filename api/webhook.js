@@ -140,17 +140,26 @@ export default async function handler(req, res) {
               console.log('📝 Message text:', webhookEvent.message.text);
               console.log('🆔 From PSID:', senderId);
               
-              // Handle incoming message from Facebook user
-              const incomingMessage = {
-                id: webhookEvent.message.mid,
-                text: webhookEvent.message.text,
-                sender: 'business', // Messages from Facebook users appear as business messages on website
-                timestamp: new Date(webhookEvent.timestamp).toISOString(),
-                source: 'facebook_messenger'
-              };
-              
-              const storedMessage = messageStore.addMessage(senderId, incomingMessage);
-              console.log('💾 Stored incoming Facebook message:', JSON.stringify(storedMessage, null, 2));
+              try {
+                // Handle incoming message from Facebook user
+                const incomingMessage = {
+                  id: webhookEvent.message.mid,
+                  text: webhookEvent.message.text,
+                  sender: 'business', // Messages from Facebook users appear as business messages on website
+                  timestamp: new Date(webhookEvent.timestamp).toISOString(),
+                  source: 'facebook_messenger'
+                };
+                
+                console.log('🔄 About to store message:', JSON.stringify(incomingMessage, null, 2));
+                console.log('🔄 Storing for sender ID:', senderId);
+                
+                const storedMessage = messageStore.addMessage(senderId, incomingMessage);
+                console.log('✅ Successfully stored message:', JSON.stringify(storedMessage, null, 2));
+                console.log('🔍 Current message count for user:', messageStore.getMessages(senderId).length);
+              } catch (error) {
+                console.error('❌ Error storing message:', error);
+                console.error('❌ Error stack:', error.stack);
+              }
 
               // Auto-reply disabled - messages now appear in website chat
               // if (webhookEvent.message.text) {
