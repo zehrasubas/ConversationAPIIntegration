@@ -7,31 +7,57 @@ const SupportPage = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Clear conversations on page load and reset Zendesk
+  // Clear Zendesk conversations and prepare for fresh session
   useEffect(() => {
-    // Clear localStorage conversations on hard refresh
-    const clearConversations = () => {
+    const clearZendeskData = () => {
       try {
-        localStorage.removeItem('conversationHistory');
+        // Clear all Zendesk-related data
         localStorage.removeItem('zE_oauth');
         localStorage.removeItem('ZD-store');
+        localStorage.removeItem('ZD-suid');
+        localStorage.removeItem('ZD-buid');
         
-        // Clear any Zendesk-related session storage
+        // Clear Zendesk session storage
         Object.keys(sessionStorage).forEach(key => {
-          if (key.toLowerCase().includes('zendesk') || key.toLowerCase().includes('ze_')) {
+          if (key.toLowerCase().includes('zendesk') || 
+              key.toLowerCase().includes('ze_') ||
+              key.toLowerCase().includes('zd-')) {
             sessionStorage.removeItem(key);
+          }
+        });
+
+        // Clear any Zendesk cookies if possible
+        document.cookie.split(";").forEach(cookie => {
+          const eqPos = cookie.indexOf("=");
+          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+          if (name.toLowerCase().includes('zendesk') || 
+              name.toLowerCase().includes('ze_') ||
+              name.toLowerCase().includes('zd-')) {
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
           }
         });
         
         // eslint-disable-next-line no-console
-        console.log('🧹 Cleared all conversation and Zendesk data');
+        console.log('🧹 Cleared all Zendesk data for fresh session');
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Error clearing conversation history:', error);
+        console.error('❌ Error clearing Zendesk data:', error);
       }
     };
 
-    clearConversations();
+    clearZendeskData();
+    
+    // Force clear any existing Zendesk widget
+    if (window.zE) {
+      try {
+        window.zE('messenger', 'logout');
+        // eslint-disable-next-line no-console
+        console.log('🚪 Logged out of existing Zendesk session');
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('ℹ️ No existing Zendesk session to logout');
+      }
+    }
   }, []);
   const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
   const hasInitialized = useRef(false);
@@ -217,35 +243,72 @@ const SupportPage = ({ user }) => {
                   setTicketCreated(true);
                   setTicketId(replayResult.conversationId);
                 } else {
-                  // Fallback to traditional conversation fields approach
+                  // Fallback to traditional approach - start with a fresh conversation
                   // eslint-disable-next-line no-console
-                  console.log('🔍 DEBUG: Setting conversation fields for fallback...');
+                  console.log('🔄 Using traditional approach with conversation history');
                   
-                  let fullMessage = '';
+                  // Create the conversation summary message
+                  let conversationSummary = '';
                   if (conversationHistory && conversationHistory.length > 0) {
-                    fullMessage = 'Previous conversation:\n\n';
-                    conversationHistory.forEach((message) => {
+                    // eslint-disable-next-line no-console
+                    console.log('📝 Formatting', conversationHistory.length, 'messages for Zendesk');
+                    
+                    conversationSummary = '📋 **Previous Conversation:**\n\n';
+                    conversationHistory.forEach((message, index) => {
                       const timeStr = formatTime(message.timestamp);
-                      const sender = message.sender === 'user' ? '👤 Customer' : '🤖 System';
-                      fullMessage += `${timeStr} - ${sender}: ${message.text}\n`;
+                      const sender = message.sender === 'user' ? '👤 You' : '🤖 Assistant';
+                      conversationSummary += `**${timeStr}** - ${sender}: ${message.text}\n\n`;
                     });
-                    fullMessage += '\n---\n\n🙋‍♀️ Customer requested human support.';
+                    conversationSummary += '---\n\n🙋‍♀️ **You requested human support. An agent will help you shortly!**';
+                    
+                    // Send the conversation history as the first message
+                    setTimeout(() => {
+                      try {
+                        if (window.zE) {
+                          // Use the new Zendesk API to send a message
+                          window.zE('messenger', 'send', conversationSummary);
+                          // eslint-disable-next-line no-console
+                          console.log('📨 Sent conversation history to Zendesk chat');
+                        }
+                      } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('❌ Error sending conversation history:', error);
+                      }
+                    }, 2000);
                   } else {
-                    fullMessage = '🙋‍♀️ Customer requested human support.';
+                    // No conversation history - just send welcome message
+                    setTimeout(() => {
+                      try {
+                        if (window.zE) {
+                          window.zE('messenger', 'send', '👋 Hello! You requested human support. An agent will be with you shortly!');
+                          // eslint-disable-next-line no-console
+                          console.log('📨 Sent welcome message to Zendesk chat');
+                        }
+                      } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('❌ Error sending welcome message:', error);
+                      }
+                    }, 2000);
                   }
 
-                  window.zE('messenger:set', 'conversationFields', [
-                    {
-                      id: '39467850731803', // Conversation History field ID
-                      value: fullMessage
-                    },
-                    {
-                      id: '39467890996891', // Chat Session ID field ID
-                      value: sessionId
-                    }
-                  ]);
-                  // eslint-disable-next-line no-console
-                  console.log('✅ DEBUG: Conversation fields set successfully');
+                  // Still set conversation fields for agent reference
+                  try {
+                    window.zE('messenger:set', 'conversationFields', [
+                      {
+                        id: '39467850731803', // Conversation History field ID
+                        value: conversationSummary || 'Customer requested support directly'
+                      },
+                      {
+                        id: '39467890996891', // Chat Session ID field ID
+                        value: sessionId
+                      }
+                    ]);
+                    // eslint-disable-next-line no-console
+                    console.log('✅ Set conversation fields for agent reference');
+                  } catch (error) {
+                    // eslint-disable-next-line no-console
+                    console.error('❌ Error setting conversation fields:', error);
+                  }
                 }
                 
                 // Clear loading since we're done configuring
