@@ -243,60 +243,33 @@ const SupportPage = ({ user }) => {
                   setTicketCreated(true);
                   setTicketId(replayResult.conversationId);
                 } else {
-                  // Fallback to traditional approach - start with a fresh conversation
+                  // Fallback: Use ONLY conversationFields (the correct approach)
                   // eslint-disable-next-line no-console
-                  console.log('🔄 Using traditional approach with conversation history');
+                  console.log('🔄 Using traditional conversationFields approach');
                   
-                  // Create the conversation summary message
+                  // Format conversation history for the agent to see
                   let conversationSummary = '';
                   if (conversationHistory && conversationHistory.length > 0) {
                     // eslint-disable-next-line no-console
-                    console.log('📝 Formatting', conversationHistory.length, 'messages for Zendesk');
+                    console.log('📝 Formatting', conversationHistory.length, 'messages for agent fields');
                     
-                    conversationSummary = '📋 **Previous Conversation:**\n\n';
+                    conversationSummary = 'Previous Web Chat Conversation:\n\n';
                     conversationHistory.forEach((message, index) => {
                       const timeStr = formatTime(message.timestamp);
-                      const sender = message.sender === 'user' ? '👤 You' : '🤖 Assistant';
-                      conversationSummary += `**${timeStr}** - ${sender}: ${message.text}\n\n`;
+                      const sender = message.sender === 'user' ? 'Customer' : 'Bot';
+                      conversationSummary += `${timeStr} - ${sender}: ${message.text}\n`;
                     });
-                    conversationSummary += '---\n\n🙋‍♀️ **You requested human support. An agent will help you shortly!**';
-                    
-                    // Send the conversation history as the first message
-                    setTimeout(() => {
-                      try {
-                        if (window.zE) {
-                          // Use the new Zendesk API to send a message
-                          window.zE('messenger', 'send', conversationSummary);
-                          // eslint-disable-next-line no-console
-                          console.log('📨 Sent conversation history to Zendesk chat');
-                        }
-                      } catch (error) {
-                        // eslint-disable-next-line no-console
-                        console.error('❌ Error sending conversation history:', error);
-                      }
-                    }, 2000);
+                    conversationSummary += '\n--- Customer requested human support ---';
                   } else {
-                    // No conversation history - just send welcome message
-                    setTimeout(() => {
-                      try {
-                        if (window.zE) {
-                          window.zE('messenger', 'send', '👋 Hello! You requested human support. An agent will be with you shortly!');
-                          // eslint-disable-next-line no-console
-                          console.log('📨 Sent welcome message to Zendesk chat');
-                        }
-                      } catch (error) {
-                        // eslint-disable-next-line no-console
-                        console.error('❌ Error sending welcome message:', error);
-                      }
-                    }, 2000);
+                    conversationSummary = 'Customer requested human support directly (no prior conversation)';
                   }
 
-                  // Still set conversation fields for agent reference
+                  // CORRECT Zendesk API: Use colon (:) not dot (.)
                   try {
                     window.zE('messenger:set', 'conversationFields', [
                       {
                         id: '39467850731803', // Conversation History field ID
-                        value: conversationSummary || 'Customer requested support directly'
+                        value: conversationSummary
                       },
                       {
                         id: '39467890996891', // Chat Session ID field ID
@@ -304,7 +277,8 @@ const SupportPage = ({ user }) => {
                       }
                     ]);
                     // eslint-disable-next-line no-console
-                    console.log('✅ Set conversation fields for agent reference');
+                    console.log('✅ Set conversation fields with correct API syntax');
+                    console.log('📄 History summary:', conversationSummary);
                   } catch (error) {
                     // eslint-disable-next-line no-console
                     console.error('❌ Error setting conversation fields:', error);
