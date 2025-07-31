@@ -115,11 +115,11 @@ const SupportPage = ({ user }) => {
     };
 
     const initializeZendeskWidget = (conversationHistory, replayResult = null) => {
+      // eslint-disable-next-line no-console
+      console.log('🚀 Initializing modern Zendesk Web Widget...');
+      
       // Load Zendesk script if not already loaded
       if (!window.zE) {
-        // eslint-disable-next-line no-console
-        console.log('📦 Loading Zendesk script...');
-        
         const script = document.createElement('script');
         script.id = 'ze-snippet';
         script.src = 'https://static.zdassets.com/ekr/snippet.js?key=d00c5a70-85da-47ea-bd7d-7445bcc31c38';
@@ -127,10 +127,10 @@ const SupportPage = ({ user }) => {
         
         script.onload = () => {
           // eslint-disable-next-line no-console
-          console.log('✅ Zendesk script loaded');
+          console.log('✅ Zendesk Web Widget script loaded');
           setTimeout(() => {
-            configureZendeskWidget(conversationHistory);
-          }, 500);
+            configureModernWidget(conversationHistory, replayResult);
+          }, 1000);
         };
         
         script.onerror = () => {
@@ -143,16 +143,16 @@ const SupportPage = ({ user }) => {
         document.head.appendChild(script);
       } else {
         // eslint-disable-next-line no-console
-        console.log('✅ Zendesk already loaded');
+        console.log('✅ Zendesk already loaded, configuring...');
         setTimeout(() => {
-          configureZendeskWidget(conversationHistory);
+          configureModernWidget(conversationHistory, replayResult);
         }, 500);
       }
     };
 
-    const configureZendeskWidget = (conversationHistory, replayResult = null) => {
+    const configureModernWidget = (conversationHistory, replayResult = null) => {
       // eslint-disable-next-line no-console
-      console.log('⚙️ Configuring Zendesk widget...');
+      console.log('⚙️ Configuring modern Zendesk widget...');
       
       // Wait for Zendesk to be fully loaded
       const checkZE = setInterval(() => {
@@ -160,37 +160,36 @@ const SupportPage = ({ user }) => {
           clearInterval(checkZE);
           
           try {
-            // Log in user if we have their info
-            if (user?.name && user?.email) {
+            // Set up widget event listeners first
+            window.zE('messenger:on', 'open', () => {
               // eslint-disable-next-line no-console
-              console.log('🔍 DEBUG: Logging in user:', user.name, user.email);
-              window.zE('messenger', 'loginUser', {
-                name: user.name,
-                email: user.email,
-                              // Use the Sunshine Conversations external ID
-              externalId: replayResult?.userId || `website_user_${user.email.replace('@', '_at_')}`
-              });
-              // eslint-disable-next-line no-console
-              console.log('✅ DEBUG: User logged in successfully');
-            }
-            
-            // Set conversation tags
-            window.zE('messenger', 'set', 'tags', ['chat-transfer', 'support-request']);
-            // eslint-disable-next-line no-console
-            console.log('✅ DEBUG: Tags set successfully');
+              console.log('📂 Widget opened');
+            });
 
-            // If we have a replayed conversation, try to open that specific conversation
+            window.zE('messenger:on', 'close', () => {
+              // eslint-disable-next-line no-console
+              console.log('📕 Widget closed');
+            });
+
+            window.zE('messenger:on', 'unreadCountChanged', (count) => {
+              // eslint-disable-next-line no-console
+              console.log(`📬 Unread count changed: ${count}`);
+            });
+
+            // Show the widget
+            window.zE('messenger', 'show');
+            
+            // Set conversation tags for Sunshine Conversations
+            window.zE('messenger:set', 'conversationTags', ['chat-transfer', 'support-request']);
+            // eslint-disable-next-line no-console
+            console.log('✅ Widget configuration complete');
+
+            // If we have a Sunshine conversation result, log the details
             if (replayResult?.conversationId) {
               // eslint-disable-next-line no-console
-              console.log('🎯 Opening specific conversation:', replayResult.conversationId);
-              
-              // Try to navigate to the specific conversation
-              try {
-                window.zE('messenger', 'set', 'conversationId', replayResult.conversationId);
-              } catch (error) {
-                // eslint-disable-next-line no-console
-                console.log('⚠️ Could not set specific conversation, opening normally');
-              }
+              console.log('🌞 Sunshine conversation created:', replayResult.conversationId);
+              console.log('👤 User ID from Sunshine:', replayResult.userId);
+              console.log('📊 Messages transferred:', replayResult.messagesReplayed);
             }
             
             // Open widget with multiple attempts to ensure it opens
@@ -229,11 +228,11 @@ const SupportPage = ({ user }) => {
             // Set metadata for the conversation
             setTimeout(() => {
               try {
-                // We now ONLY use Sunshine Conversations API approach
+                // Sunshine Conversations approach
                 if (replayResult?.conversationId) {
                   // eslint-disable-next-line no-console
-                  console.log('🌞 Using Sunshine Conversations with full replayed history');
-                  console.log(`📊 Successfully replayed ${replayResult.messagesReplayed} messages`);
+                  console.log('🌞 Using Sunshine Conversations with conversation history');
+                  console.log(`📊 Successfully transferred ${replayResult.messagesReplayed} messages`);
                   console.log(`🆔 Conversation ID: ${replayResult.conversationId}`);
                   console.log(`👤 User ID: ${replayResult.userId}`);
                   

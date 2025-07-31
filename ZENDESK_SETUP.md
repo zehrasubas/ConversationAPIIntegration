@@ -1,194 +1,105 @@
-# Zendesk Integration Setup Guide
+# Zendesk Sunshine Conversations Integration Setup
 
-## 🎯 Overview
+This guide explains how to set up the Zendesk Sunshine Conversations integration for seamless conversation transfer.
 
-This integration adds Zendesk support functionality to your Facebook Messenger conversation API project. Users can now seamlessly transfer from your website chat widget to Zendesk support while preserving their conversation history.
+## Overview
 
-## 🏗️ Flow Architecture
+This integration uses **Zendesk Sunshine Conversations API** to create conversations that automatically appear in the Zendesk Web Widget. The flow is: Your System → Sunshine API → Zendesk Backend → Web Widget Display.
 
-1. **User chats** on website via custom chat widget
-2. **Conversation history** is stored in localStorage  
-3. **"Get Support" button** appears when user has messages
-4. **Click redirects** to `/support` page
-5. **Support page automatically**:
-   - Creates Zendesk ticket with conversation history
-   - Loads Zendesk messaging widget
-   - Transfers context seamlessly
+## Required Environment Variables
 
-## 📋 Environment Variables Required
-
-Add these to your **Vercel Dashboard → Settings → Environment Variables**:
-
-```env
-# Existing Facebook vars (keep these)
-FACEBOOK_LOGIN_APP_ID=21102398933175
-FACEBOOK_APP_ID=30902396742455
-FACEBOOK_APP_SECRET=your_facebook_app_secret
-PAGE_ACCESS_TOKEN=your_facebook_page_access_token
-VERIFY_TOKEN=HiMetaConvAPIHi
-PAGE_ID=29202387465526
-WEBHOOK_SECRET=0e7e5f5869595f2f8a68d686cfd87cdb
-
-# New Zendesk Integration Variables
-ZENDESK_SUBDOMAIN=startup3297
-ZENDESK_EMAIL=swapnilchavada@gmail.com
-ZENDESK_API_TOKEN=eQ9c60jNhZshcV3zKCT7TYDZM43USbYRMpb0gAOi
-ZENDESK_WIDGET_KEY=d00c5a70-85da-47ea-bd7d-7445bcc31c38
-ZENDESK_CONVERSATION_HISTORY_FIELD_ID=39467850731803
-ZENDESK_SESSION_ID_FIELD_ID=39467890996891
-```
-
-## 🔧 Zendesk Configuration
-
-### 1. Widget Setup (Already Done)
-- **Widget Key**: `d00c5a70-85da-47ea-bd7d-7445bcc31c38`
-- **Subdomain**: `startup3297.zendesk.com`
-
-### 2. Custom Fields (Already Created)
-- **Conversation History Field**: ID `39467850731803`
-- **Chat Session ID Field**: ID `39467890996891`
-
-### 3. API Token (Already Generated)
-- **Token**: `eQ9c60jNhZshcV3zKCT7TYDZM43USbYRMpb0gAOi`
-- **Email**: `swapnilchavada@gmail.com`
-
-## 🚀 Deployment Steps
-
-### Step 1: Add Environment Variables to Vercel
-
-1. Go to **Vercel Dashboard** → Your Project → **Settings** → **Environment Variables**
-2. Add all the Zendesk variables listed above
-3. **Important**: Make sure to deploy after adding variables
-
-### Step 2: Deploy the Updated Code
+Add these environment variables to your Vercel deployment:
 
 ```bash
-# From your project root
-npm run deploy
-
-# Or using Vercel CLI
-vercel --prod
+ZENDESK_SUNSHINE_APP_ID=your-app-id        # Your Sunshine Conversations App ID
+ZENDESK_SUNSHINE_API_KEY=your-api-key      # Your Sunshine Conversations API Key
 ```
 
-### Step 3: Test the Integration
+## Setup Steps
 
-1. **Go to**: https://conversation-api-integration.vercel.app/
-2. **Login** with Facebook
-3. **Send a message** in the chat widget
-4. **Click "Get Support"** button that appears
-5. **Verify** you're redirected to `/support` page
-6. **Check** that Zendesk widget loads and opens automatically
-7. **Verify** ticket is created in your Zendesk dashboard
+### 1. Enable Sunshine Conversations in Zendesk
+1. Go to Zendesk Admin Center
+2. Navigate to **Apps and integrations** → **APIs** → **Sunshine Conversations API**
+3. Enable Sunshine Conversations if not already enabled
 
-## 🧪 Testing URLs
+### 2. Create a Sunshine Conversations App
+1. In Admin Center, go to **Apps and integrations** → **Sunshine Conversations**
+2. Click **Create app** or use existing app
+3. Note your **App ID** (without the `app_` prefix)
 
-### Development Testing
+### 3. Generate API Key
+1. In your Sunshine Conversations app settings
+2. Go to **Settings** → **API keys**
+3. Click **Create API key**
+4. Copy the generated **Key ID** and **Secret**
+5. Use the **Key ID** (with `app_` prefix) as your API key
+
+### 4. Connect to Zendesk
+1. In Sunshine Conversations, go to **Integrations**
+2. Add **Zendesk** integration
+3. Connect to your Zendesk instance
+4. Note the **Integration ID** for the Web Widget
+
+### 5. Add Environment Variables to Vercel
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Environment Variables**
+3. Add the two variables listed above
+
+## How It Works
+
+### Conversation Transfer Flow
+1. **User Request**: Customer clicks "Get Support" after chatting on website
+2. **Sunshine API Call**: Creates conversation with formatted history summary
+3. **User & Conversation Creation**: Sunshine automatically creates user and conversation
+4. **Message Transfer**: Chat history formatted as beautiful summary message
+5. **Widget Display**: Zendesk Web Widget automatically shows the conversation
+6. **Agent Handoff**: Agents see full context and can continue conversation
+
+### Technical Details
+- Uses **Sunshine Conversations API** (`https://api.smooch.io/v2/apps/{appId}`)
+- **Basic Auth** with API key (`Basic base64(apiKey:)`)
+- **Automatic user creation** with profile information
+- **Formatted conversation summary** with timestamps and speakers
+- **Native widget integration** through Sunshine-Zendesk connection
+
+### Benefits
+- ✅ **Seamless integration** between Sunshine and Zendesk
+- ✅ **Beautiful formatting** for conversation history
+- ✅ **Automatic user management** - no manual user creation needed
+- ✅ **Rich conversation context** with timestamps and speaker identification
+- ✅ **Real-time widget updates** as conversation is created
+
+## Troubleshooting
+
+### Common Issues
+1. **Authentication errors**: Verify App ID and API Key are correct
+2. **Conversation not appearing**: Check if Sunshine-Zendesk integration is active
+3. **Widget not loading**: Verify Web Widget key in SupportPage.js
+
+### Debugging
+- Check browser console for widget loading errors
+- Review Vercel function logs for API call details
+- Test Sunshine API connection manually if needed
+
+### Testing the Integration
+Use this example flow to verify everything works:
+1. Chat on main website and send some messages
+2. Click "Get Support" button
+3. Should see support page with success message
+4. Widget should auto-open showing conversation history
+
+## Environment Variables Summary
+
+Make sure you have these set in Vercel:
 ```bash
-# Test ticket creation API
-curl -X POST "https://conversation-api-integration.vercel.app/api/zendesk/create-ticket" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sessionId": "test_session_123",
-    "conversationHistory": [
-      {"text": "Hello", "sender": "user", "timestamp": "2025-01-09T10:00:00Z"},
-      {"text": "Hi there!", "sender": "bot", "timestamp": "2025-01-09T10:00:05Z"}
-    ],
-    "userEmail": "test@example.com",
-    "userName": "Test User"
-  }'
+ZENDESK_SUNSHINE_APP_ID=67a0e949f0305f4a391e9d97
+ZENDESK_SUNSHINE_API_KEY=app_67a0e949f0305f4a391e9d97:sk-1a2b3c4d5e6f...
 ```
 
-### Production URLs
-- **Main Site**: https://conversation-api-integration.vercel.app/
-- **Support Page**: https://conversation-api-integration.vercel.app/support
-- **Ticket API**: https://conversation-api-integration.vercel.app/api/zendesk/create-ticket
+## Success Indicators
 
-## 📂 New Files Added
-
-```
-├── api/
-│   └── zendesk/
-│       └── create-ticket.js          # Zendesk ticket creation API
-├── client/src/components/
-│   ├── SupportPage.js                # Support page component
-│   └── SupportPage.css               # Support page styles
-└── ZENDESK_SETUP.md                  # This setup guide
-```
-
-## 🔄 Updated Files
-
-```
-├── client/src/
-│   ├── App.js                        # Added /support routing
-│   └── components/
-│       ├── ChatBox.js                # Added conversation storage & support button
-│       └── ChatBox.css               # Added support button styles
-```
-
-## 🎮 Features Implemented
-
-### ✅ Chat Widget Enhancements
-- **Conversation History Storage**: Automatically saves to localStorage
-- **Get Support Button**: Appears when user has sent messages  
-- **Seamless Handoff**: One-click redirect to support page
-
-### ✅ Support Page Features
-- **Automatic Ticket Creation**: Creates Zendesk ticket with conversation history
-- **Widget Auto-Load**: Zendesk messaging widget loads and opens automatically
-- **Context Transfer**: Session ID and conversation history passed to Zendesk
-- **Error Handling**: Graceful fallbacks for loading issues
-- **Responsive Design**: Works on desktop and mobile
-
-### ✅ Backend API
-- **Ticket Creation Endpoint**: `/api/zendesk/create-ticket`
-- **Conversation History Formatting**: Readable format for support agents
-- **Custom Field Population**: Automatically fills Zendesk custom fields
-- **Error Handling**: Comprehensive error responses
-
-## 🔍 Troubleshooting
-
-### Widget Not Loading
-1. **Check Environment Variables**: Ensure `ZENDESK_WIDGET_KEY` is correct
-2. **Check Console**: Look for JavaScript errors
-3. **Verify Domain**: Ensure your domain is whitelisted in Zendesk
-
-### Ticket Creation Failing
-1. **Check API Token**: Verify `ZENDESK_API_TOKEN` is correct
-2. **Check Custom Fields**: Ensure field IDs match your Zendesk setup
-3. **Check Console**: Review API response for error details
-
-### Support Button Not Appearing  
-1. **Login Required**: User must be logged in with Facebook
-2. **Messages Required**: User must have sent at least one message
-3. **Check Chat Widget**: Ensure ChatBox component is loaded
-
-## 📊 Analytics & Monitoring
-
-Monitor these metrics in your Zendesk dashboard:
-- **Ticket Volume**: Track tickets with tag `chat-transfer`
-- **Response Times**: Monitor support response metrics
-- **Conversation Quality**: Review conversation history quality
-
-## 🔐 Security Notes
-
-- **API Token**: Stored securely in Vercel environment variables
-- **Custom Fields**: Only accessible to Zendesk admins
-- **Conversation Data**: Stored temporarily in localStorage, cleared after support transfer
-
-## 🎯 Next Steps
-
-1. **Train Support Team**: Educate agents on chat transfer tickets
-2. **Monitor Usage**: Track support page visits and ticket creation
-3. **User Feedback**: Collect feedback on support experience
-4. **Performance**: Monitor Zendesk widget loading times
-
-## 📧 Support
-
-For questions about this integration:
-- **Technical Issues**: Check Vercel deployment logs
-- **Zendesk Configuration**: Contact Zendesk support
-- **Feature Requests**: Update this documentation
-
----
-
-**✅ Integration Complete**: Your Facebook Messenger chat widget now seamlessly connects to Zendesk support! 
+When working correctly, you should see:
+- ✅ Console logs: "Sunshine conversation created"
+- ✅ Widget auto-opens with conversation history
+- ✅ Formatted summary message visible in chat
+- ✅ Follow-up message about agent wait time 
