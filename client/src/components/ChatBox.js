@@ -22,6 +22,13 @@ const ChatBox = ({ user }) => {
   useEffect(() => {
     const loadConversationHistory = () => {
       try {
+        // Only load conversation history if we're not on the support page
+        if (window.location.pathname === '/support') {
+          // eslint-disable-next-line no-console
+          console.log('🚫 Support page detected - not loading conversation history');
+          return;
+        }
+        
         const stored = localStorage.getItem('conversationHistory');
         if (stored) {
           const history = JSON.parse(stored);

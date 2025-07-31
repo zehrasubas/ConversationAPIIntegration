@@ -6,6 +6,33 @@ const SupportPage = ({ user }) => {
   const [ticketId, setTicketId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Clear conversations on page load and reset Zendesk
+  useEffect(() => {
+    // Clear localStorage conversations on hard refresh
+    const clearConversations = () => {
+      try {
+        localStorage.removeItem('conversationHistory');
+        localStorage.removeItem('zE_oauth');
+        localStorage.removeItem('ZD-store');
+        
+        // Clear any Zendesk-related session storage
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.toLowerCase().includes('zendesk') || key.toLowerCase().includes('ze_')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+        
+        // eslint-disable-next-line no-console
+        console.log('🧹 Cleared all conversation and Zendesk data');
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('❌ Error clearing conversation history:', error);
+      }
+    };
+
+    clearConversations();
+  }, []);
   const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
   const hasInitialized = useRef(false);
 
@@ -147,10 +174,38 @@ const SupportPage = ({ user }) => {
               }
             }
             
-            // Open widget
-            window.zE('messenger', 'open');
-            // eslint-disable-next-line no-console
-            console.log('✅ DEBUG: Widget opened successfully');
+            // Open widget with multiple attempts to ensure it opens
+            const openWidget = () => {
+              try {
+                window.zE('messenger', 'open');
+                // eslint-disable-next-line no-console
+                console.log('✅ DEBUG: Widget opened successfully');
+                
+                // Force widget to be visible and on top
+                setTimeout(() => {
+                  const iframe = document.querySelector('iframe[title*="Messaging"]') || 
+                                document.querySelector('iframe[title*="messaging"]') ||
+                                document.querySelector('iframe[title*="Chat"]');
+                  if (iframe) {
+                    iframe.style.display = 'block !important';
+                    iframe.style.visibility = 'visible !important';
+                    iframe.style.zIndex = '9999999 !important';
+                    // eslint-disable-next-line no-console
+                    console.log('✅ Widget iframe forced visible');
+                  }
+                }, 500);
+              } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error('❌ Error opening widget:', error);
+              }
+            };
+
+            // Try opening immediately
+            openWidget();
+            
+            // Try again after a delay in case first attempt failed
+            setTimeout(openWidget, 1000);
+            setTimeout(openWidget, 3000);
             
             // Set metadata for the conversation
             setTimeout(() => {
@@ -295,13 +350,17 @@ const SupportPage = ({ user }) => {
         </div>
         
         <div className="support-content">
-          <div className="error-message">
-            <div className="error-icon">⚠️</div>
-            <h2>Support Unavailable</h2>
-            <p>{error}</p>
-            <button onClick={() => window.location.reload()} className="retry-button">
-              Try Again
-            </button>
+          <div className="error-container">
+            <div className="error-illustration">
+              <div className="error-icon">
+                <i className="fas fa-exclamation-triangle"></i>
+              </div>
+              <h2>Unable to connect to support</h2>
+              <p>{error}</p>
+              <button onClick={() => window.location.reload()} className="retry-button">
+                <i className="fas fa-redo"></i> Try Again
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -329,17 +388,28 @@ const SupportPage = ({ user }) => {
       <div className="support-content">
         {loading ? (
           <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>Connecting you to support...</p>
+            <div className="support-illustration">
+              <div className="support-icon">
+                <i className="fas fa-headset"></i>
+              </div>
+              <h2>Connecting you to support...</h2>
+              <p>Please wait while we prepare your chat session</p>
+            </div>
           </div>
         ) : (
-          <div className="support-ready">
-            <div className="support-animation">
-              <div className="floating-icon" style={{top: '10%', left: '15%', animationDelay: '0s'}}>💬</div>
-              <div className="floating-icon" style={{top: '20%', right: '20%', animationDelay: '1s'}}>🎧</div>
-              <div className="floating-icon" style={{bottom: '30%', left: '10%', animationDelay: '2s'}}>📞</div>
-              <div className="floating-icon" style={{bottom: '15%', right: '15%', animationDelay: '0.5s'}}>💡</div>
-              <div className="floating-icon" style={{top: '40%', left: '50%', animationDelay: '1.5s'}}>🚀</div>
+          <div className="success-container">
+            <div className="success-illustration">
+              <div className="success-icon">
+                <i className="fas fa-check-circle"></i>
+              </div>
+              <h2>Connected to Support</h2>
+              <p>Your support chat is ready! The widget should open automatically.</p>
+              {ticketCreated && ticketId && (
+                <div className="ticket-info">
+                  <i className="fas fa-ticket-alt"></i>
+                  <span>Session: #{ticketId}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
