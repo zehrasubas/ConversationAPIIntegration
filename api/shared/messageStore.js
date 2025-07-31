@@ -1,39 +1,15 @@
 // Shared Message Store for all API endpoints
-// In production, replace with a database like MongoDB, PostgreSQL, or Redis
-
-const fs = require('fs');
-const path = require('path');
+// Using a simple global variable approach for now (will reset between cold starts)
 
 class MessageStore {
   constructor() {
-    this.messages = {};
+    // Use global variable to persist between warm starts
+    if (!global.messageStoreData) {
+      global.messageStoreData = {};
+    }
+    this.messages = global.messageStoreData;
     this.listeners = new Set(); // SSE connections listening for new messages
-    this.persistenceFile = '/tmp/messages.json'; // Vercel /tmp is shared between function calls
-    this.loadFromPersistence();
-  }
-
-  // Load messages from persistence file
-  loadFromPersistence() {
-    try {
-      if (fs.existsSync(this.persistenceFile)) {
-        const data = fs.readFileSync(this.persistenceFile, 'utf8');
-        this.messages = JSON.parse(data);
-        console.log('📁 Loaded messages from persistence:', Object.keys(this.messages).length, 'users');
-      }
-    } catch (error) {
-      console.error('❌ Error loading from persistence:', error);
-      this.messages = {};
-    }
-  }
-
-  // Save messages to persistence file
-  saveToPersistence() {
-    try {
-      fs.writeFileSync(this.persistenceFile, JSON.stringify(this.messages, null, 2));
-      console.log('💾 Saved messages to persistence');
-    } catch (error) {
-      console.error('❌ Error saving to persistence:', error);
-    }
+    console.log('🏗️ MessageStore initialized with', Object.keys(this.messages).length, 'users');
   }
 
   addMessage(userId, message) {
@@ -57,8 +33,11 @@ class MessageStore {
       this.messages[userId] = this.messages[userId].slice(-100);
     }
     
-    // Save to persistence
-    this.saveToPersistence();
+    // Update global reference
+    global.messageStoreData = this.messages;
+    
+    console.log('✅ Message added for user', userId, '- Total messages for user:', this.messages[userId].length);
+    console.log('📝 Message content:', JSON.stringify(formattedMessage, null, 2));
     
     // Notify all SSE listeners about the new message
     this.notifyListeners(userId, formattedMessage);
@@ -132,8 +111,8 @@ class MessageStore {
       }
     }
     
-    // Save changes to persistence
-    this.saveToPersistence();
+    // Update global reference
+    global.messageStoreData = this.messages;
   }
 }
 
