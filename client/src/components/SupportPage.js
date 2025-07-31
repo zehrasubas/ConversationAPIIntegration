@@ -29,12 +29,12 @@ const SupportPage = ({ user }) => {
       });
     };
 
-    const createSupportTicket = async (conversationHistory) => {
+    const replayConversationHistory = async (conversationHistory) => {
       try {
         // eslint-disable-next-line no-console
-        console.log('🎫 Creating support ticket...');
+        console.log('🌅 Replaying conversation history in Zendesk...');
         
-        const response = await fetch('/api/zendesk/create-ticket', {
+        const response = await fetch('/api/zendesk/replay-conversation', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -50,19 +50,19 @@ const SupportPage = ({ user }) => {
         const result = await response.json();
         
         if (result.success) {
-          setTicketCreated(true);
-          setTicketId(result.ticketId);
           // eslint-disable-next-line no-console
-          console.log('✅ Support ticket created:', result.ticketId);
+          console.log('✅ Conversation history replayed:', result.conversationId);
+          console.log('📊 Messages replayed:', result.messagesReplayed);
+          return result;
         } else {
           // eslint-disable-next-line no-console
-          console.error('❌ Failed to create support ticket:', result);
-          setError('Failed to create support ticket. Please try again.');
+          console.error('❌ Failed to replay conversation:', result);
+          throw new Error(result.error || 'Failed to replay conversation');
         }
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Error creating support ticket:', error);
-        setError(error.message || 'Failed to create support ticket');
+        console.error('❌ Error replaying conversation:', error);
+        throw error;
       }
     };
 
