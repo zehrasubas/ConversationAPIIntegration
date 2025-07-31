@@ -122,4 +122,4 @@ Once environment variables are set up, we'll implement:
 1. **PSID Exchange** - Convert Facebook User ID to Page-scoped ID
 2. **Send Message Integration** - Chat bubble → Messenger
 3. **Receive Message Handling** - Messenger → Chat bubble
-4. **Real-time Updates** - Live message synchronization 
+4. **Real-time Updates** - Live message synchronization # Trigger deployment - Thu Jul 31 14:00:07 PDT 2025
