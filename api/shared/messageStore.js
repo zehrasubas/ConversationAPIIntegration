@@ -4,6 +4,7 @@
 class MessageStore {
   constructor() {
     this.messages = {};
+    this.listeners = new Set(); // SSE connections listening for new messages
   }
 
   addMessage(userId, message) {
@@ -27,6 +28,9 @@ class MessageStore {
       this.messages[userId] = this.messages[userId].slice(-100);
     }
     
+    // Notify all SSE listeners about the new message
+    this.notifyListeners(userId, formattedMessage);
+    
     return formattedMessage;
   }
 
@@ -44,6 +48,41 @@ class MessageStore {
       const msgTime = new Date(msg.timestamp).getTime();
       return msgTime > sinceTime;
     });
+  }
+
+  // SSE Listener management
+  addListener(listener) {
+    this.listeners.add(listener);
+    console.log(`SSE listener added. Total listeners: ${this.listeners.size}`);
+  }
+
+  removeListener(listener) {
+    this.listeners.delete(listener);
+    console.log(`SSE listener removed. Total listeners: ${this.listeners.size}`);
+  }
+
+  notifyListeners(userId, message) {
+    const eventData = {
+      type: 'new_message',
+      userId,
+      message,
+      timestamp: new Date().toISOString()
+    };
+
+    // Send to all connected SSE clients
+    this.listeners.forEach(listener => {
+      try {
+        listener.send(eventData);
+      } catch (error) {
+        console.error('Error sending SSE message:', error);
+        // Remove broken listener
+        this.listeners.delete(listener);
+      }
+    });
+
+    if (this.listeners.size > 0) {
+      console.log(`Notified ${this.listeners.size} SSE listeners about new message for user ${userId}`);
+    }
   }
 
   // Clear old messages (cleanup function)

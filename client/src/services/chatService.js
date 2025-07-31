@@ -107,9 +107,66 @@ const fetchNewMessages = async (psid, since) => {
   return fetchMessageHistory(psid, since);
 };
 
+// Connect to Server-Sent Events for real-time message streaming
+const connectToMessageStream = (psid, onMessage, onError = null) => {
+  const url = `${BASE_URL}/api/messages/stream?userId=${encodeURIComponent(psid)}`;
+  
+  // eslint-disable-next-line no-console
+  console.log('🌊 Connecting to message stream:', url);
+  
+  const eventSource = new EventSource(url);
+  
+  eventSource.onopen = () => {
+    // eslint-disable-next-line no-console
+    console.log('✅ SSE connection opened');
+  };
+  
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      // eslint-disable-next-line no-console
+      console.log('📨 SSE message received:', data);
+      
+      // Handle different event types
+      switch (data.type) {
+        case 'connected':
+          // eslint-disable-next-line no-console
+          console.log('🔗 SSE connection established for user:', data.userId);
+          break;
+        case 'new_message':
+          // eslint-disable-next-line no-console
+          console.log('🆕 New message via SSE:', data.message);
+          onMessage(data.message);
+          break;
+        case 'heartbeat':
+          // eslint-disable-next-line no-console
+          console.log('💓 SSE heartbeat');
+          break;
+        default:
+          // eslint-disable-next-line no-console
+          console.log('❓ Unknown SSE event type:', data.type);
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Error parsing SSE message:', error);
+      if (onError) onError(error);
+    }
+  };
+  
+  eventSource.onerror = (error) => {
+    // eslint-disable-next-line no-console
+    console.error('❌ SSE connection error:', error);
+    if (onError) onError(error);
+  };
+  
+  // Return the EventSource instance so caller can close it
+  return eventSource;
+};
+
 export const chatService = {
   sendMessage,
   fetchMessageHistory,
   fetchNewMessages,
+  connectToMessageStream,
   initializeConversation,
 }; 

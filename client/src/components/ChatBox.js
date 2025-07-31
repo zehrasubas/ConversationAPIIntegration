@@ -8,10 +8,9 @@ const ChatBox = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
-  const [lastMessageTime, setLastMessageTime] = useState(null);
-  const [isPolling, setIsPolling] = useState(false);
+  const [isConnectedToStream, setIsConnectedToStream] = useState(false);
   const messagesEndRef = useRef(null);
-  const pollingIntervalRef = useRef(null);
+  const sseConnectionRef = useRef(null);
 
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
@@ -55,12 +54,6 @@ const ChatBox = ({ user }) => {
         localStorage.setItem('conversationHistory', JSON.stringify(messages));
         // eslint-disable-next-line no-console
         console.log('💾 Saved conversation history:', messages.length, 'messages');
-        
-        // Update last message time for polling
-        const latestMessage = messages[messages.length - 1];
-        if (latestMessage?.timestamp) {
-          setLastMessageTime(latestMessage.timestamp);
-        }
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('❌ Error saving conversation history:', error);
@@ -68,38 +61,25 @@ const ChatBox = ({ user }) => {
     }
   }, [messages]);
 
-  // Polling for new messages from backend
-  const pollForNewMessages = useCallback(async () => {
-    if (!isAuthenticated || !user?.psid || isPolling) return;
+  // Handle new messages from SSE stream
+  const handleNewMessage = useCallback((newMessage) => {
+    // eslint-disable-next-line no-console
+    console.log('🆕 Received new message via SSE:', newMessage);
     
-    try {
-      setIsPolling(true);
-      // eslint-disable-next-line no-console
-      console.log('🔄 Polling for new messages since:', lastMessageTime);
-      
-      const response = await chatService.fetchNewMessages(user.psid, lastMessageTime);
-      
-      if (response?.success && response.messages?.length > 0) {
+    // Check if we already have this message (avoid duplicates)
+    setMessages(prev => {
+      const existingIds = new Set(prev.map(msg => msg.id));
+      if (existingIds.has(newMessage.id)) {
         // eslint-disable-next-line no-console
-        console.log('📨 Found new messages from backend:', response.messages.length);
-        
-        // Filter out any messages we already have (by ID)
-        const existingIds = new Set(messages.map(msg => msg.id));
-        const newMessages = response.messages.filter(msg => !existingIds.has(msg.id));
-        
-        if (newMessages.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log('✨ Adding new messages to chat:', newMessages);
-          setMessages(prev => [...prev, ...newMessages]);
-        }
+        console.log('🔄 Message already exists, skipping duplicate:', newMessage.id);
+        return prev;
       }
-    } catch (error) {
+      
       // eslint-disable-next-line no-console
-      console.error('❌ Error polling for messages:', error);
-    } finally {
-      setIsPolling(false);
-    }
-  }, [isAuthenticated, user?.psid, isPolling, lastMessageTime, messages]);
+      console.log('✨ Adding new message to chat:', newMessage);
+      return [...prev, newMessage];
+    });
+  }, []);
 
   // Sync with server messages when opening chat
   const syncWithServerMessages = useCallback(async () => {
@@ -138,33 +118,70 @@ const ChatBox = ({ user }) => {
     }
   }, [isAuthenticated, user?.psid, messages]);
 
-  // Start/stop polling based on chat state
+  // Connect to SSE stream for real-time messages
+  const connectToMessageStream = useCallback(() => {
+    if (!isAuthenticated || !user?.psid || sseConnectionRef.current) return;
+    
+    try {
+      // eslint-disable-next-line no-console
+      console.log('🌊 Connecting to message stream for user:', user.psid);
+      
+      const eventSource = chatService.connectToMessageStream(
+        user.psid,
+        handleNewMessage,
+        (error) => {
+          // eslint-disable-next-line no-console
+          console.error('❌ SSE connection error:', error);
+          setIsConnectedToStream(false);
+        }
+      );
+      
+      sseConnectionRef.current = eventSource;
+      setIsConnectedToStream(true);
+      
+      // Handle connection state changes
+      eventSource.addEventListener('open', () => {
+        setIsConnectedToStream(true);
+      });
+      
+      eventSource.addEventListener('error', () => {
+        setIsConnectedToStream(false);
+      });
+      
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Error connecting to message stream:', error);
+      setIsConnectedToStream(false);
+    }
+  }, [isAuthenticated, user?.psid, handleNewMessage]);
+
+  // Disconnect from SSE stream
+  const disconnectFromMessageStream = useCallback(() => {
+    if (sseConnectionRef.current) {
+      // eslint-disable-next-line no-console
+      console.log('🔌 Disconnecting from message stream');
+      sseConnectionRef.current.close();
+      sseConnectionRef.current = null;
+      setIsConnectedToStream(false);
+    }
+  }, []);
+
+  // Start/stop SSE connection based on chat state
   useEffect(() => {
     if (isOpen && isAuthenticated && user?.psid) {
-      // Sync with server first, then start polling
+      // Sync with server first, then connect to SSE stream
       syncWithServerMessages();
-      
-      // Start polling every 3 seconds when chat is open
-      // eslint-disable-next-line no-console
-      console.log('🔄 Starting message polling...');
-      pollingIntervalRef.current = setInterval(pollForNewMessages, 3000);
+      connectToMessageStream();
     } else {
-      // Stop polling when chat is closed or user is not authenticated
-      if (pollingIntervalRef.current) {
-        // eslint-disable-next-line no-console
-        console.log('⏹️ Stopping message polling...');
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
+      // Disconnect SSE when chat is closed or user is not authenticated
+      disconnectFromMessageStream();
     }
 
     // Cleanup on unmount
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      disconnectFromMessageStream();
     };
-  }, [isOpen, isAuthenticated, user?.psid, syncWithServerMessages, pollForNewMessages]);
+  }, [isOpen, isAuthenticated, user?.psid, syncWithServerMessages, connectToMessageStream, disconnectFromMessageStream]);
 
   // Fetch message history when chat is opened - COMMENTED OUT until Messenger setup
   // NOTE: Disabled until PAGE_ACCESS_TOKEN and Messenger Platform are configured
@@ -343,9 +360,9 @@ const ChatBox = ({ user }) => {
                 Send a message to activate Messenger integration
               </div>
             )}
-            {isAuthenticated && hasMessengerIntegration && isPolling && (
+            {isAuthenticated && hasMessengerIntegration && isConnectedToStream && (
               <div className="polling-indicator">
-                <i className="fas fa-sync-alt fa-spin"></i> Checking for new messages...
+                <i className="fas fa-wifi"></i> Connected to live messages
               </div>
             )}
           </div>

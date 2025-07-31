@@ -287,14 +287,14 @@
 
 .polling-indicator {
   padding: 5px 10px;
-  background-color: rgba(93, 173, 226, 0.1);
-  color: #2E86AB;
+  background-color: rgba(88, 214, 141, 0.1);
+  color: #27AE60;
   font-size: 12px;
   text-align: center;
-  border-top: 1px solid rgba(93, 173, 226, 0.2);
+  border-top: 1px solid rgba(88, 214, 141, 0.2);
 }
 
 .polling-indicator i {
   margin-right: 5px;
-  color: #5DADE2;
+  color: #58D68D;
 } 
