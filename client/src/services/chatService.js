@@ -78,10 +78,10 @@ const fetchMessageHistory = async (psid, since = null) => {
       throw new Error('PSID is required');
     }
     
-    // Build URL with optional since parameter
-    let url = `${BASE_URL}/api/messages/history/${psid}`;
+    // Build URL with userId as query parameter
+    let url = `${BASE_URL}/api/messages/history?userId=${encodeURIComponent(psid)}`;
     if (since) {
-      url += `?since=${encodeURIComponent(since)}`;
+      url += `&since=${encodeURIComponent(since)}`;
     }
     
     const response = await fetch(url);
