@@ -1,5 +1,5 @@
-// Zendesk Sunshine Conversations API - Replay Chat History
-// This creates actual chat messages in Zendesk before the customer sees the widget
+// Zendesk Sunshine Conversations API - Transfer Chat History as Summary
+// This creates a formatted summary message in Zendesk showing the conversation history
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -108,92 +108,99 @@ export default async function handler(req, res) {
       })
     });
 
-    // Step 4: Replay conversation history
+    // Step 4: Send conversation summary as single formatted message
     if (conversationHistory && conversationHistory.length > 0) {
-      console.log('🔄 Replaying', conversationHistory.length, 'messages...');
+      console.log('📋 Creating conversation summary from', conversationHistory.length, 'messages...');
       
-      for (let i = 0; i < conversationHistory.length; i++) {
-        const message = conversationHistory[i];
+      // Helper function to format chat history into a readable summary
+      const formatChatSummary = (messages) => {
+        const header = "📞 **Chat Transfer Summary**\n";
+        const divider = "━".repeat(40) + "\n";
         
-        // Determine message author
-        const author = message.sender === 'user' 
-          ? { type: 'user', userId: userId }
-          : { type: 'business' };
+        const messageHistory = messages.map((msg, index) => {
+          const time = new Date(msg.timestamp || Date.now()).toLocaleTimeString();
+          const icon = msg.sender === 'user' ? '👤' : '🤖';
+          const speaker = msg.sender === 'user' ? 'Customer' : 'Assistant';
+          return `${icon} **${speaker}** (${time})\n   ${msg.text}`;
+        }).join('\n\n');
+        
+        const footer = `\n${divider}The customer is now connected and ready to continue the conversation with a human agent.`;
+        
+        return header + divider + messageHistory + footer;
+      };
 
-        // Create message
-        const messageData = {
-          author: author,
-          content: {
-            type: 'text',
-            text: message.text
-          },
-          metadata: {
-            originalTimestamp: message.timestamp,
-            originalSender: message.sender,
-            replayedMessage: true
-          }
-        };
-
-        const messageResponse = await fetch(
-          `${sunshineApiUrl}/conversations/${conversationId}/messages`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': authHeader,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(messageData)
-          }
-        );
-
-        if (!messageResponse.ok) {
-          console.error('❌ Failed to replay message:', await messageResponse.text());
-        } else {
-          console.log(`✅ Replayed message ${i + 1}/${conversationHistory.length}`);
+      // Create formatted summary
+      const conversationSummary = formatChatSummary(conversationHistory);
+      
+      // Send single summary message
+      const summaryMessage = {
+        author: { type: 'business' },
+        content: {
+          type: 'text',
+          text: conversationSummary
+        },
+        metadata: {
+          isSummaryMessage: true,
+          originalMessageCount: conversationHistory.length
         }
+      };
 
-        // Small delay to maintain order
-        await new Promise(resolve => setTimeout(resolve, 100));
+      const summaryResponse = await fetch(
+        `${sunshineApiUrl}/conversations/${conversationId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(summaryMessage)
+        }
+      );
+
+      if (!summaryResponse.ok) {
+        console.error('❌ Failed to send summary message:', await summaryResponse.text());
+      } else {
+        console.log('✅ Sent conversation summary successfully');
       }
+    } else {
+      // No history - just send welcome message
+      const welcomeMessage = {
+        author: { type: 'business' },
+        content: {
+          type: 'text',
+          text: "👋 Hi! An agent will be with you shortly to help with your request!"
+        },
+        metadata: {
+          isWelcomeMessage: true
+        }
+      };
+
+      await fetch(`${sunshineApiUrl}/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(welcomeMessage)
+      });
+      
+      console.log('✅ Sent welcome message');
     }
 
-    // Step 5: Add handoff message
-    const handoffMessage = {
-      author: { type: 'business' },
-      content: {
-        type: 'text',
-        text: conversationHistory?.length > 0 
-          ? "👋 Hi! I can see our previous conversation above. An agent will be with you shortly to continue helping!"
-          : "👋 Hi! An agent will be with you shortly to help with your request!"
-      },
-      metadata: {
-        isHandoffMessage: true
-      }
-    };
-
-    await fetch(`${sunshineApiUrl}/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(handoffMessage)
-    });
-
-    console.log('🎉 Conversation replay completed successfully');
+    console.log('🎉 Conversation summary transfer completed successfully');
 
     res.status(200).json({
       success: true,
       conversationId: conversationId,
       userId: userId,
       messagesReplayed: conversationHistory?.length || 0,
-      message: 'Conversation history replayed successfully'
+      message: 'Conversation history transferred as summary successfully'
     });
 
   } catch (error) {
-    console.error('❌ Error replaying conversation:', error);
+    console.error('❌ Error transferring conversation summary:', error);
     res.status(500).json({
-      error: 'Failed to replay conversation',
+      error: 'Failed to transfer conversation summary',
       details: error.message
     });
   }

@@ -172,10 +172,8 @@ const SupportPage = ({ user }) => {
               window.zE('messenger', 'loginUser', {
                 name: user.name,
                 email: user.email,
-                // If we have a replayed conversation, use the external ID
-                ...(replayResult && { 
-                  externalId: `website_user_${user.email.replace('@', '_at_')}` 
-                })
+                              // Use the Sunshine Conversations external ID
+              externalId: replayResult?.userId || `website_user_${user.email.replace('@', '_at_')}`
               });
               // eslint-disable-next-line no-console
               console.log('✅ DEBUG: User logged in successfully');
@@ -236,53 +234,18 @@ const SupportPage = ({ user }) => {
             // Set metadata for the conversation
             setTimeout(() => {
               try {
+                // We now ONLY use Sunshine Conversations API approach
                 if (replayResult?.conversationId) {
-                  // If we have a replayed conversation, just set basic metadata
                   // eslint-disable-next-line no-console
-                  console.log('✅ Using replayed conversation with full history');
+                  console.log('🌞 Using Sunshine Conversations with full replayed history');
+                  console.log(`📊 Successfully replayed ${replayResult.messagesReplayed} messages`);
+                  console.log(`🆔 Conversation ID: ${replayResult.conversationId}`);
+                  console.log(`👤 User ID: ${replayResult.userId}`);
+                  
                   setTicketCreated(true);
                   setTicketId(replayResult.conversationId);
                 } else {
-                  // Fallback: Use ONLY conversationFields (the correct approach)
-                  // eslint-disable-next-line no-console
-                  console.log('🔄 Using traditional conversationFields approach');
-                  
-                  // Format conversation history for the agent to see
-                  let conversationSummary = '';
-                  if (conversationHistory && conversationHistory.length > 0) {
-                    // eslint-disable-next-line no-console
-                    console.log('📝 Formatting', conversationHistory.length, 'messages for agent fields');
-                    
-                    conversationSummary = 'Previous Web Chat Conversation:\n\n';
-                    conversationHistory.forEach((message, index) => {
-                      const timeStr = formatTime(message.timestamp);
-                      const sender = message.sender === 'user' ? 'Customer' : 'Bot';
-                      conversationSummary += `${timeStr} - ${sender}: ${message.text}\n`;
-                    });
-                    conversationSummary += '\n--- Customer requested human support ---';
-                  } else {
-                    conversationSummary = 'Customer requested human support directly (no prior conversation)';
-                  }
-
-                  // CORRECT Zendesk API: Use colon (:) not dot (.)
-                  try {
-                    window.zE('messenger:set', 'conversationFields', [
-                      {
-                        id: '39467850731803', // Conversation History field ID
-                        value: conversationSummary
-                      },
-                      {
-                        id: '39467890996891', // Chat Session ID field ID
-                        value: sessionId
-                      }
-                    ]);
-                    // eslint-disable-next-line no-console
-                    console.log('✅ Set conversation fields with correct API syntax');
-                    console.log('📄 History summary:', conversationSummary);
-                  } catch (error) {
-                    // eslint-disable-next-line no-console
-                    console.error('❌ Error setting conversation fields:', error);
-                  }
+                  throw new Error('No conversation ID returned from Sunshine Conversations');
                 }
                 
                 // Clear loading since we're done configuring
@@ -352,15 +315,16 @@ const SupportPage = ({ user }) => {
         // NOW clear localStorage for future sessions (but keep the history we just got)
         localStorage.removeItem('conversationHistory');
         
-        // Replay conversation history in Zendesk
+        // Replay conversation history using Sunshine Conversations API
         let replayResult = null;
         try {
           replayResult = await replayConversationHistory(conversationHistory);
           // eslint-disable-next-line no-console
-          console.log('🌅 Successfully replayed conversation history');
+          console.log('🌞 Successfully replayed conversation in Sunshine Conversations:', replayResult);
         } catch (error) {
           // eslint-disable-next-line no-console
-          console.error('❌ Error replaying conversation, falling back to traditional approach:', error);
+          console.error('❌ Failed to replay conversation in Sunshine Conversations:', error);
+          throw new Error(`Sunshine Conversations replay failed: ${error.message}`);
         }
         
         // Initialize Zendesk widget
