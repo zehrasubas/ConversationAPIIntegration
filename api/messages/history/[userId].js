@@ -1,19 +1,7 @@
 // Message History API Endpoint for Vercel
 // Dynamic route: /api/messages/history/[userId]
 
-// In-memory message store (replace with a database in production)
-const messageStore = {
-  messages: {},
-  addMessage: function(userId, message) {
-    if (!this.messages[userId]) {
-      this.messages[userId] = [];
-    }
-    this.messages[userId].push(message);
-  },
-  getMessages: function(userId) {
-    return this.messages[userId] || [];
-  }
-};
+const messageStore = require('../../shared/messageStore');
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -22,19 +10,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { userId } = req.query;
+    const { userId, since } = req.query;
     
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' });
     }
     
-    const messages = messageStore.getMessages(userId);
+    // If 'since' parameter is provided, only return newer messages
+    const messages = since 
+      ? messageStore.getNewMessages(userId, since)
+      : messageStore.getMessages(userId);
+      
     console.log('Fetching message history for user:', userId);
-    console.log('Messages found:', messages);
+    console.log('Since timestamp:', since || 'all messages');
+    console.log('Messages found:', messages.length);
     
     res.json({ 
       success: true,
-      messages 
+      messages,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error fetching messages:', error);

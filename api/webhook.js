@@ -1,19 +1,6 @@
 // Facebook Webhook Handler for Vercel
 const fetch = require('node-fetch');
-
-// In-memory message store (replace with a database in production)
-const messageStore = {
-  messages: {},
-  addMessage: function(userId, message) {
-    if (!this.messages[userId]) {
-      this.messages[userId] = [];
-    }
-    this.messages[userId].push(message);
-  },
-  getMessages: function(userId) {
-    return this.messages[userId] || [];
-  }
-};
+const messageStore = require('./shared/messageStore');
 
 // Send message to Facebook
 async function sendToFacebook(recipientId, text) {
@@ -153,39 +140,42 @@ export default async function handler(req, res) {
               console.log('📝 Message text:', webhookEvent.message.text);
               console.log('🆔 From PSID:', senderId);
               
-              // Handle message
-              const message = {
+              // Handle incoming message from Facebook user
+              const incomingMessage = {
                 id: webhookEvent.message.mid,
                 text: webhookEvent.message.text,
-                sender: 'business',
-                timestamp: new Date(webhookEvent.timestamp).toISOString()
+                sender: 'business', // Messages from Facebook users appear as business messages on website
+                timestamp: new Date(webhookEvent.timestamp).toISOString(),
+                source: 'facebook_messenger'
               };
-              messageStore.addMessage(senderId, message);
-              console.log('💾 Stored message in local store:', JSON.stringify(message, null, 2));
+              
+              const storedMessage = messageStore.addMessage(senderId, incomingMessage);
+              console.log('💾 Stored incoming Facebook message:', JSON.stringify(storedMessage, null, 2));
 
-              // Auto-reply example
-              if (webhookEvent.message.text) {
-                try {
-                  console.log('🤖 Sending auto-reply to PSID:', senderId);
-                  const response = await sendToFacebook(
-                    senderId,
-                    `Thank you for your message: "${webhookEvent.message.text}". We'll get back to you soon!`
-                  );
-                  console.log('✅ Auto-reply sent successfully:', JSON.stringify(response, null, 2));
-                } catch (error) {
-                  console.error('❌ Error sending auto-reply:', error);
-                }
-              }
+              // Auto-reply disabled - messages now appear in website chat
+              // if (webhookEvent.message.text) {
+              //   try {
+              //     console.log('🤖 Sending auto-reply to PSID:', senderId);
+              //     const response = await sendToFacebook(
+              //       senderId,
+              //       `Thank you for your message: "${webhookEvent.message.text}". We'll get back to you soon!`
+              //     );
+              //     console.log('✅ Auto-reply sent successfully:', JSON.stringify(response, null, 2));
+              //   } catch (error) {
+              //     console.error('❌ Error sending auto-reply:', error);
+              //   }
+              // }
             } else if (webhookEvent.postback) {
               // Handle postback
-              const message = {
+              const postbackMessage = {
                 id: Date.now().toString(),
                 text: `Received postback: ${webhookEvent.postback.payload}`,
                 sender: 'business',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                source: 'facebook_postback'
               };
-              messageStore.addMessage(senderId, message);
-              console.log('💾 Stored postback:', message);
+              const storedPostback = messageStore.addMessage(senderId, postbackMessage);
+              console.log('💾 Stored postback:', storedPostback);
             }
           });
         });

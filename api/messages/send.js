@@ -1,19 +1,6 @@
 // Send Message API Endpoint for Messenger Platform
 const fetch = require('node-fetch');
-
-// In-memory message store (replace with a database in production)
-const messageStore = {
-  messages: {},
-  addMessage: function(userId, message) {
-    if (!this.messages[userId]) {
-      this.messages[userId] = [];
-    }
-    this.messages[userId].push(message);
-  },
-  getMessages: function(userId) {
-    return this.messages[userId] || [];
-  }
-};
+const messageStore = require('../shared/messageStore');
 
 // Send message to Facebook Messenger Platform
 async function sendToFacebookMessenger(recipientPSID, text) {
@@ -86,23 +73,23 @@ export default async function handler(req, res) {
     }
 
     // Store message locally first
-    const newMessage = {
+    const userMessage = {
       id: Date.now().toString(),
       text: message,
       sender: 'user',
       timestamp: new Date().toISOString(),
-      userId: userId
+      source: 'website'
     };
 
-    messageStore.addMessage(userId, newMessage);
-    console.log('💾 Message stored locally:', newMessage);
+    const storedMessage = messageStore.addMessage(userId, userMessage);
+    console.log('💾 User message stored:', storedMessage);
 
     // Check if Messenger Platform is configured
     if (!process.env.PAGE_ACCESS_TOKEN) {
       console.log('⚠️ PAGE_ACCESS_TOKEN not configured - storing message locally only');
       return res.json({
         success: true,
-        messageId: newMessage.id,
+        messageId: storedMessage.id,
         status: 'local_only',
         note: 'Message stored locally - Messenger Platform not configured'
       });
@@ -123,7 +110,7 @@ export default async function handler(req, res) {
 
       res.json({
         success: true,
-        messageId: fbResponse.message_id || newMessage.id,
+        messageId: fbResponse.message_id || storedMessage.id,
         status: 'sent_to_messenger',
         note: 'Message sent to Facebook Messenger Platform'
       });
@@ -133,7 +120,7 @@ export default async function handler(req, res) {
       // Still return success for local storage, but indicate Messenger failure
       res.status(200).json({
         success: true,
-        messageId: newMessage.id,
+        messageId: storedMessage.id,
         status: 'local_only',
         warning: 'Message stored locally but failed to send to Messenger',
         error: messengerError.message,

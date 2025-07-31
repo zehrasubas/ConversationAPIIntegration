@@ -22,6 +22,7 @@ const initializeConversation = async (psid) => {
 
     if (!response.ok) {
       const errorData = await response.text();
+      // eslint-disable-next-line no-console
       console.error('Server error response:', errorData);
       throw new Error(`Failed to initialize conversation: ${response.status}`);
     }
@@ -29,6 +30,7 @@ const initializeConversation = async (psid) => {
     const data = await response.json();
     return data;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error initializing conversation:', error);
     throw error;
   }
@@ -56,6 +58,7 @@ const sendMessage = async (message, psid) => {
 
     if (!response.ok) {
       const errorData = await response.text();
+      // eslint-disable-next-line no-console
       console.error('Server error response:', errorData);
       throw new Error(`Failed to send message: ${response.status}`);
     }
@@ -63,24 +66,29 @@ const sendMessage = async (message, psid) => {
     const data = await response.json();
     return data;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error sending message:', error);
     throw error;
   }
 };
 
-const fetchMessageHistory = async (psid) => {
+const fetchMessageHistory = async (psid, since = null) => {
   try {
     if (!psid) {
       throw new Error('PSID is required');
     }
     
-    // First, ensure we have an active conversation
-    await initializeConversation(psid);
+    // Build URL with optional since parameter
+    let url = `${BASE_URL}/api/messages/history/${psid}`;
+    if (since) {
+      url += `?since=${encodeURIComponent(since)}`;
+    }
     
-    const response = await fetch(`${BASE_URL}/api/messages/history/${psid}`);
+    const response = await fetch(url);
     
     if (!response.ok) {
       const errorData = await response.text();
+      // eslint-disable-next-line no-console
       console.error('Server error response:', errorData);
       throw new Error(`Failed to fetch message history: ${response.status}`);
     }
@@ -88,13 +96,20 @@ const fetchMessageHistory = async (psid) => {
     const data = await response.json();
     return data;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error fetching message history:', error);
     throw error;
   }
 };
 
+// Fetch only new messages since a timestamp
+const fetchNewMessages = async (psid, since) => {
+  return fetchMessageHistory(psid, since);
+};
+
 export const chatService = {
   sendMessage,
   fetchMessageHistory,
+  fetchNewMessages,
   initializeConversation,
 }; 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { chatService } from '../services/chatService';
 import './ChatBox.css';
 
@@ -8,7 +8,10 @@ const ChatBox = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
+  const [lastMessageTime, setLastMessageTime] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
   const messagesEndRef = useRef(null);
+  const pollingIntervalRef = useRef(null);
 
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
@@ -52,12 +55,116 @@ const ChatBox = ({ user }) => {
         localStorage.setItem('conversationHistory', JSON.stringify(messages));
         // eslint-disable-next-line no-console
         console.log('💾 Saved conversation history:', messages.length, 'messages');
+        
+        // Update last message time for polling
+        const latestMessage = messages[messages.length - 1];
+        if (latestMessage?.timestamp) {
+          setLastMessageTime(latestMessage.timestamp);
+        }
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('❌ Error saving conversation history:', error);
       }
     }
   }, [messages]);
+
+  // Polling for new messages from backend
+  const pollForNewMessages = useCallback(async () => {
+    if (!isAuthenticated || !user?.psid || isPolling) return;
+    
+    try {
+      setIsPolling(true);
+      // eslint-disable-next-line no-console
+      console.log('🔄 Polling for new messages since:', lastMessageTime);
+      
+      const response = await chatService.fetchNewMessages(user.psid, lastMessageTime);
+      
+      if (response?.success && response.messages?.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log('📨 Found new messages from backend:', response.messages.length);
+        
+        // Filter out any messages we already have (by ID)
+        const existingIds = new Set(messages.map(msg => msg.id));
+        const newMessages = response.messages.filter(msg => !existingIds.has(msg.id));
+        
+        if (newMessages.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log('✨ Adding new messages to chat:', newMessages);
+          setMessages(prev => [...prev, ...newMessages]);
+        }
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Error polling for messages:', error);
+    } finally {
+      setIsPolling(false);
+    }
+  }, [isAuthenticated, user?.psid, isPolling, lastMessageTime, messages]);
+
+  // Sync with server messages when opening chat
+  const syncWithServerMessages = useCallback(async () => {
+    if (!isAuthenticated || !user?.psid) return;
+    
+    try {
+      // eslint-disable-next-line no-console
+      console.log('🔄 Syncing with server messages...');
+      
+      // Fetch all messages from server
+      const response = await chatService.fetchMessageHistory(user.psid);
+      
+      if (response?.success && response.messages?.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log('📨 Server messages found:', response.messages.length);
+        
+        // Merge with local messages, avoiding duplicates
+        const localIds = new Set(messages.map(msg => msg.id));
+        const serverMessages = response.messages.filter(msg => !localIds.has(msg.id));
+        
+        if (serverMessages.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log('✨ Merging server messages:', serverMessages.length);
+          
+          // Sort all messages by timestamp
+          const allMessages = [...messages, ...serverMessages].sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          setMessages(allMessages);
+        }
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Error syncing with server:', error);
+    }
+  }, [isAuthenticated, user?.psid, messages]);
+
+  // Start/stop polling based on chat state
+  useEffect(() => {
+    if (isOpen && isAuthenticated && user?.psid) {
+      // Sync with server first, then start polling
+      syncWithServerMessages();
+      
+      // Start polling every 3 seconds when chat is open
+      // eslint-disable-next-line no-console
+      console.log('🔄 Starting message polling...');
+      pollingIntervalRef.current = setInterval(pollForNewMessages, 3000);
+    } else {
+      // Stop polling when chat is closed or user is not authenticated
+      if (pollingIntervalRef.current) {
+        // eslint-disable-next-line no-console
+        console.log('⏹️ Stopping message polling...');
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [isOpen, isAuthenticated, user?.psid, syncWithServerMessages, pollForNewMessages]);
 
   // Fetch message history when chat is opened - COMMENTED OUT until Messenger setup
   // NOTE: Disabled until PAGE_ACCESS_TOKEN and Messenger Platform are configured
@@ -234,6 +341,11 @@ const ChatBox = ({ user }) => {
             {isAuthenticated && !hasMessengerIntegration && (
               <div className="login-prompt">
                 Send a message to activate Messenger integration
+              </div>
+            )}
+            {isAuthenticated && hasMessengerIntegration && isPolling && (
+              <div className="polling-indicator">
+                <i className="fas fa-sync-alt fa-spin"></i> Checking for new messages...
               </div>
             )}
           </div>
