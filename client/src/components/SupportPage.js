@@ -77,52 +77,6 @@ const SupportPage = ({ user }) => {
     
 
 
-    const replayConversationHistory = async (conversationHistory) => {
-      try {
-        // eslint-disable-next-line no-console
-        console.log('🌅 Replaying conversation history in Zendesk...');
-        
-        const response = await fetch('/api/zendesk/replay-conversation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            conversationHistory,
-            sessionId,
-            userEmail: user?.email || 'visitor@conversation-api-integration.vercel.app',
-            userName: user?.name || 'Website Visitor'
-          })
-        });
-
-        // eslint-disable-next-line no-console
-        console.log('📡 API Response status:', response.status);
-        console.log('📡 API Response ok:', response.ok);
-
-        const result = await response.json();
-        
-        // eslint-disable-next-line no-console
-        console.log('📡 API Response body:', result);
-        
-        if (response.ok && result.success) {
-          // eslint-disable-next-line no-console
-          console.log('✅ Conversation history replayed successfully');
-          console.log('🆔 Conversation ID:', result.conversationId);
-          return result;
-        } else {
-          // eslint-disable-next-line no-console
-          console.error('❌ API returned error response:', result);
-          throw new Error(result.error || result.message || `API returned ${response.status}`);
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('❌ Error in replayConversationHistory:', error);
-        // eslint-disable-next-line no-console
-        console.error('❌ Error details:', error.message);
-        throw error;
-      }
-    };
-
     const initializeZendeskWidget = (conversationHistory, replayResult = null) => {
       // eslint-disable-next-line no-console
       console.log('🚀 Initializing modern Zendesk Web Widget...');
@@ -138,7 +92,7 @@ const SupportPage = ({ user }) => {
           // eslint-disable-next-line no-console
           console.log('✅ Zendesk Web Widget script loaded');
           setTimeout(() => {
-            configureModernWidget(conversationHistory, replayResult);
+            configureModernWidget(conversationHistory);
           }, 1000);
         };
         
@@ -154,12 +108,12 @@ const SupportPage = ({ user }) => {
         // eslint-disable-next-line no-console
         console.log('✅ Zendesk already loaded, configuring...');
         setTimeout(() => {
-          configureModernWidget(conversationHistory, replayResult);
+          configureModernWidget(conversationHistory);
         }, 500);
       }
     };
 
-    const configureModernWidget = (conversationHistory, replayResult = null) => {
+    const configureModernWidget = (conversationHistory) => {
       // eslint-disable-next-line no-console
       console.log('⚙️ Configuring modern Zendesk widget...');
       
@@ -234,23 +188,55 @@ const SupportPage = ({ user }) => {
             // Show the widget
             window.zE('messenger', 'show');
             
-            // Set conversation tags for Sunshine Conversations
-            window.zE('messenger:set', 'conversationTags', ['chat-transfer', 'support-request']);
-            // eslint-disable-next-line no-console
-            console.log('✅ Widget configuration complete');
-
-            // If we have a Sunshine conversation result, log the details
-            if (replayResult?.conversationId) {
+            // Set conversation tags for chat transfer identification
+            window.zE('messenger:set', 'conversationTags', ['chat-transfer', 'external-handoff', 'support-request']);
+            
+            // Format and set conversation history using conversation fields
+            if (conversationHistory && conversationHistory.length > 0) {
               // eslint-disable-next-line no-console
-              console.log('🌞 Sunshine conversation created:', replayResult.conversationId);
+              console.log('📝 Adding conversation context via conversation fields...');
+              
+              // Format history summary for agents
+              const historySummary = conversationHistory.map((msg, index) => {
+                const time = new Date(msg.timestamp || Date.now()).toLocaleTimeString();
+                const speaker = msg.sender === 'user' ? 'Customer' : 'Assistant';
+                return `[${time}] ${speaker}: ${msg.text}`;
+              }).join(' | ');
+              
+              // Set conversation fields that agents can see
+              window.zE('messenger:set', 'conversationFields', [
+                { 
+                  id: 'chat_history_summary', 
+                  value: historySummary 
+                },
+                { 
+                  id: 'message_count', 
+                  value: conversationHistory.length.toString() 
+                },
+                { 
+                  id: 'transfer_timestamp', 
+                  value: new Date().toISOString() 
+                },
+                { 
+                  id: 'handoff_reason', 
+                  value: 'Customer requested human support from chat widget' 
+                }
+              ]);
+              
+              // eslint-disable-next-line no-console
+              console.log('✅ Conversation context added via fields');
+              console.log(`📊 Context: ${conversationHistory.length} messages transferred`);
               setTicketCreated(true);
-              setTicketId(replayResult.conversationId);
+              setTicketId('widget-conversation-' + Date.now());
             } else {
               // eslint-disable-next-line no-console
-              console.log('ℹ️ No Sunshine conversation created - using basic widget');
+              console.log('ℹ️ No conversation history found - opening fresh support chat');
               setTicketCreated(false);
               setTicketId(null);
             }
+            
+            // eslint-disable-next-line no-console
+            console.log('✅ Widget configuration complete');
             
             // Open widget with a single, reliable attempt
             setTimeout(() => {
@@ -312,27 +298,8 @@ const SupportPage = ({ user }) => {
         // NOW clear localStorage for future sessions (but keep the history we just got)
         localStorage.removeItem('conversationHistory');
         
-        // Replay conversation history using Sunshine Conversations API
-        let replayResult = null;
-        try {
-          replayResult = await replayConversationHistory(conversationHistory);
-          // eslint-disable-next-line no-console
-          console.log('🌞 Successfully replayed conversation in Sunshine Conversations:', replayResult);
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('❌ Failed to replay conversation in Sunshine Conversations:', error);
-          
-          // Continue with widget initialization even if API fails
-          // but set replayResult to null and log the error
-          replayResult = null;
-          
-          // Show user a warning but don't prevent widget from loading
-          // eslint-disable-next-line no-console
-          console.warn('⚠️ Continuing with basic widget setup due to API failure');
-        }
-        
-        // Initialize Zendesk widget (works with or without replayResult)
-        initializeZendeskWidget(conversationHistory, replayResult);
+        // Initialize Zendesk widget with simple approach (no API calls needed)
+        initializeZendeskWidget(conversationHistory);
         
       } catch (error) {
         // eslint-disable-next-line no-console
