@@ -26,9 +26,9 @@ export default async function handler(req, res) {
     console.log('🔧 PSID Exchange Logic:');
     console.log('📝 Input User ID:', userId);
     
-    // For the specific user who's been testing (User ID: 25202398580210)
+    // For the specific user who's been testing (User ID: 2520239858821)
     // Return the real PSID we captured from webhook: 24032820953053099
-    if (userId === '25202398580210') {
+    if (userId === '2520239858821') {
       const realPSID = '24032820953053099';
       console.log('✅ Found real PSID mapping for test user');
       console.log('🎯 Returning real PSID:', realPSID);

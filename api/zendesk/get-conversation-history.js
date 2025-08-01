@@ -14,11 +14,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { psid, conversationId } = req.query;
+    const { externalId, conversationId } = req.query;
     
-    if (!psid && !conversationId) {
+    if (!externalId && !conversationId) {
       return res.status(400).json({ 
-        error: 'Either psid or conversationId parameter is required' 
+        error: 'Either externalId or conversationId parameter is required' 
       });
     }
 
@@ -33,13 +33,13 @@ export default async function handler(req, res) {
 
     let targetConversationId = conversationId;
     
-    // If PSID provided, look up the conversation ID
-    if (psid && !conversationId) {
-      targetConversationId = sunshineStore.getConversationId(psid);
+    // If external ID provided, look up the conversation ID
+    if (externalId && !conversationId) {
+      targetConversationId = sunshineStore.getConversationId(externalId);
       if (!targetConversationId) {
         return res.status(404).json({ 
-          error: 'No Sunshine conversation found for this Facebook user',
-          psid: psid
+          error: 'No Sunshine conversation found for this external ID',
+          externalId: externalId
         });
       }
     }

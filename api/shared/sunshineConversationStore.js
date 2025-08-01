@@ -6,21 +6,20 @@ class SunshineConversationStore {
     // In-memory storage for PSID -> Sunshine Conversation ID mapping
     // TODO: Replace with persistent storage (Vercel KV, Redis, etc.)
     this.conversationMap = new Map();
-    this.userMap = new Map(); // PSID -> Sunshine User ID
   }
 
   /**
-   * Get or create a Sunshine conversation for a Facebook user
-   * @param {string} facebookPSID - Facebook Page-Scoped ID
+   * Get or create a Sunshine conversation using external ID
+   * @param {string} externalId - Anonymous external ID for Sunshine
    * @param {string} firstMessage - The first message to include in the conversation
-   * @returns {Promise<Object>} { conversationId, userId, isNew }
+   * @returns {Promise<Object>} { conversationId, externalId, isNew }
    */
-  async getOrCreateConversation(facebookPSID, firstMessage = null) {
-    console.log('🌞 Getting or creating Sunshine conversation for PSID:', facebookPSID);
+  async getOrCreateConversation(externalId, firstMessage = null) {
+    console.log('🌞 Getting or creating Sunshine conversation for external ID:', externalId);
 
-    // Check if we already have a conversation for this user
-    if (this.conversationMap.has(facebookPSID)) {
-      const existingData = this.conversationMap.get(facebookPSID);
+    // Check if we already have a conversation for this external ID
+    if (this.conversationMap.has(externalId)) {
+      const existingData = this.conversationMap.get(externalId);
       console.log('📝 Found existing conversation:', existingData.conversationId);
       return { ...existingData, isNew: false };
     }
@@ -38,11 +37,9 @@ class SunshineConversationStore {
       const sunshineApiUrl = `https://api.smooch.io/v2/apps/${appId}`;
       const authHeader = `Basic ${Buffer.from(`${keyId}:${secret}`).toString('base64')}`;
 
-      // Create anonymous external ID for this user (maintaining anonymity)
-      const userExternalId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      console.log('🔐 Using anonymous external ID:', userExternalId);
+      console.log('🔐 Using external ID for Sunshine:', externalId);
 
-      // Step 1: Create the user first with external ID
+      // Step 1: Create the user with external ID
       const userResponse = await fetch(`${sunshineApiUrl}/users`, {
         method: 'POST',
         headers: {
@@ -50,7 +47,7 @@ class SunshineConversationStore {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          externalId: userExternalId,
+          externalId: externalId,
           profile: {
             givenName: 'Anonymous',
             surname: 'User'
@@ -101,19 +98,20 @@ class SunshineConversationStore {
       const conversationId = conversationData.conversation.id;
       console.log('✅ Created anonymous Sunshine conversation:', conversationId);
 
-      // Store the mapping (using external ID for anonymity)
+      // Store the mapping using external ID as key
       const conversationInfo = {
         conversationId,
-        userId: sunshineUserId,
-        userExternalId,
-        facebookPSID,
+        externalId,
+        sunshineUserId,
         createdAt: new Date().toISOString()
       };
 
-      this.conversationMap.set(facebookPSID, conversationInfo);
-      this.userMap.set(facebookPSID, userExternalId); // Store external ID for anonymity
-
-      console.log('💾 Stored anonymous conversation mapping:', conversationInfo);
+      this.conversationMap.set(externalId, conversationInfo);
+      
+      console.log('💾 Stored conversation mapping by external ID:', conversationInfo);
+      console.log(`📊 Total conversations now stored: ${this.conversationMap.size}`);
+      console.log('🔑 All stored external IDs:', Array.from(this.conversationMap.keys()));
+      
       return { ...conversationInfo, isNew: true };
 
     } catch (error) {
@@ -124,18 +122,18 @@ class SunshineConversationStore {
 
   /**
    * Add a message to an existing Sunshine conversation
-   * @param {string} facebookPSID - Facebook Page-Scoped ID
+   * @param {string} externalId - Anonymous external ID for Sunshine
    * @param {string} messageText - Message content
    * @param {string} authorType - 'user' or 'business'
    * @returns {Promise<boolean>} Success status
    */
-  async addMessageToConversation(facebookPSID, messageText, authorType = 'user') {
-    console.log('💬 Adding message to Sunshine conversation for PSID:', facebookPSID);
+  async addMessageToConversation(externalId, messageText, authorType = 'user') {
+    console.log('💬 Adding message to Sunshine conversation for external ID:', externalId);
 
     try {
-      const conversationInfo = this.conversationMap.get(facebookPSID);
+      const conversationInfo = this.conversationMap.get(externalId);
       if (!conversationInfo) {
-        console.warn('⚠️ No conversation found for PSID:', facebookPSID);
+        console.warn('⚠️ No conversation found for external ID:', externalId);
         return false;
       }
 
@@ -175,13 +173,27 @@ class SunshineConversationStore {
   }
 
   /**
-   * Get conversation ID for a Facebook user
-   * @param {string} facebookPSID - Facebook Page-Scoped ID
+   * Get conversation ID for an external ID
+   * @param {string} externalId - Anonymous external ID for Sunshine
    * @returns {string|null} Sunshine conversation ID
    */
-  getConversationId(facebookPSID) {
-    const conversationInfo = this.conversationMap.get(facebookPSID);
-    return conversationInfo ? conversationInfo.conversationId : null;
+  getConversationId(externalId) {
+    console.log('🔍 Looking up conversation for external ID:', externalId);
+    console.log('📋 Available conversation mappings:');
+    
+    // Debug: log all stored mappings
+    for (const [extId, info] of this.conversationMap.entries()) {
+      console.log(`  - External ID: ${extId} → Conversation: ${info.conversationId}`);
+    }
+    
+    const conversationInfo = this.conversationMap.get(externalId);
+    if (conversationInfo) {
+      console.log('✅ Found conversation:', conversationInfo.conversationId);
+      return conversationInfo.conversationId;
+    } else {
+      console.log('❌ No conversation found for external ID:', externalId);
+      return null;
+    }
   }
 
   /**
@@ -189,8 +201,8 @@ class SunshineConversationStore {
    * @returns {Array} Array of conversation mappings
    */
   getAllConversations() {
-    return Array.from(this.conversationMap.entries()).map(([psid, info]) => ({
-      facebookPSID: psid,
+    return Array.from(this.conversationMap.entries()).map(([externalId, info]) => ({
+      externalId: externalId,
       ...info
     }));
   }

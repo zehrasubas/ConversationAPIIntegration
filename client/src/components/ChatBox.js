@@ -12,6 +12,24 @@ const ChatBox = ({ user }) => {
   const messagesEndRef = useRef(null);
   const sseConnectionRef = useRef(null);
 
+  // Get or create consistent external ID for Sunshine conversations
+  const getExternalId = useCallback(() => {
+    // If user is logged in with Facebook, use their ID as base
+    if (user?.id) {
+      return `facebook_${user.id}`;
+    }
+    
+    // Otherwise, get or create session-based external ID
+    let externalId = sessionStorage.getItem('sunshineExternalId');
+    if (!externalId) {
+      externalId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('sunshineExternalId', externalId);
+      // eslint-disable-next-line no-console
+      console.log('🆔 Generated new Sunshine external ID:', externalId);
+    }
+    return externalId;
+  }, [user]);
+
   // Get or create user ID (Facebook ID or session-based ID)
   const getUserId = useCallback(() => {
     // If user is logged in with Facebook, use their ID
@@ -268,7 +286,14 @@ const ChatBox = ({ user }) => {
       // eslint-disable-next-line no-console
       console.log('📤 Sending message to backend - Messenger Platform setup pending...');
       const currentUserId = getUserId();
-      const response = await chatService.sendMessage(inputMessage, userPSID || currentUserId);
+      const currentExternalId = getExternalId();
+      
+      // eslint-disable-next-line no-console
+      console.log('🆔 Using IDs for message sending:');
+      console.log('  - User ID (for Facebook):', currentUserId);
+      console.log('  - External ID (for Sunshine):', currentExternalId);
+      
+      const response = await chatService.sendMessage(inputMessage, userPSID || currentUserId, currentExternalId);
 
       // eslint-disable-next-line no-console
       console.log('Message sent successfully:', response);

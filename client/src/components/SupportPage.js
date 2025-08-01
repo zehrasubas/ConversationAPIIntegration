@@ -96,10 +96,26 @@ const SupportPage = () => {
             appId: '66fe310b1f5b6f0929cb3051' // Your App ID from screenshot
           }).then(() => {
             // eslint-disable-next-line no-console
-            console.log('✅ Smooch widget ready - can display API conversations');
+            console.log('✅ Smooch widget initialized');
             
-            // Widget is ready and will automatically show the conversation from our Sunshine API
-            // No need to manually inject history - Smooch displays the actual conversation
+            // Get the external ID for this session
+            const supportExternalId = sessionStorage.getItem('supportExternalId');
+            if (supportExternalId) {
+              // eslint-disable-next-line no-console
+              console.log('🔑 Logging into Smooch with external ID:', supportExternalId);
+              
+              // Login with external ID to show existing conversation
+              return window.Smooch.login(supportExternalId);
+            } else {
+              // eslint-disable-next-line no-console
+              console.warn('⚠️ No external ID found - widget will start fresh');
+              return Promise.resolve();
+            }
+          }).then(() => {
+            // eslint-disable-next-line no-console
+            console.log('✅ Smooch widget ready - displaying conversation for external ID');
+            
+            // Widget is ready and will automatically show the conversation
             setTicketCreated(true);
             setTicketId('smooch-conversation-' + Date.now());
             setLoading(false);
@@ -154,66 +170,46 @@ const SupportPage = () => {
         // Get conversation history from Sunshine API ONLY
         const getConversationHistory = async () => {
           try {
-            // Try to get user ID from various sources
-            let userId = null;
+            // Get the same external ID used in main chat
+            let externalId = null;
             
             // First, check if user is logged in via Facebook
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
               const parsedUser = JSON.parse(storedUser);
-              userId = parsedUser.id; // Facebook user ID
+              externalId = `facebook_${parsedUser.id}`;
               // eslint-disable-next-line no-console
-              console.log('👤 Using Facebook user ID:', userId);
-            }
-            
-            // If no Facebook user, check for session-based ID
-            if (!userId) {
-              userId = sessionStorage.getItem('chatUserId');
-              if (!userId) {
-                throw new Error('No user ID found - user must have an active chat session to access support');
+              console.log('👤 Using Facebook-based external ID:', externalId);
+            } else {
+              // Get session-based external ID (same as main chat)
+              externalId = sessionStorage.getItem('sunshineExternalId');
+              if (!externalId) {
+                throw new Error('No external ID found - user must have an active chat session to access support');
               }
               // eslint-disable-next-line no-console
-              console.log('🔒 Using session user ID:', userId);
+              console.log('🔒 Using session external ID:', externalId);
             }
 
             // eslint-disable-next-line no-console
-            console.log('🌞 Fetching Sunshine conversation history for user:', userId);
+            console.log('🌞 Fetching Sunshine conversation history for external ID:', externalId);
+            console.log('🔍 Support page external ID analysis:');
+            console.log('  - External ID:', externalId);
+            console.log('  - Is Facebook ID pattern:', externalId.startsWith('facebook_'));
+            console.log('  - Is anonymous pattern:', externalId.startsWith('anonymous_'));
 
-            // Fetch from Sunshine Conversations API - NO FALLBACKS
-            const response = await fetch(`/api/zendesk/get-conversation-history?psid=${encodeURIComponent(userId)}`);
-            
-            if (!response.ok) {
-              if (response.status === 404) {
-                throw new Error('No conversation history found - user must start a chat first');
-              }
-              throw new Error(`Sunshine API error: ${response.status} ${response.statusText}`);
-            }
+            // Store external ID for widget initialization
+            sessionStorage.setItem('supportExternalId', externalId);
 
-            const sunshineData = await response.json();
-            
-            if (!sunshineData.success) {
-              throw new Error(`Sunshine API returned error: ${sunshineData.error || 'Unknown error'}`);
-            }
-
-            if (!sunshineData.messages || sunshineData.messages.length === 0) {
-              throw new Error('No conversation history found in Sunshine - user must start a chat first');
-            }
-
+            // For now, we'll skip the history fetch and let Smooch widget handle it
+            // The widget will automatically show the conversation for this external ID
             // eslint-disable-next-line no-console
-            console.log('✅ Retrieved conversation history from Sunshine:', sunshineData.messages);
-            console.log('📊 Found', sunshineData.messages.length, 'messages from Sunshine API');
+            console.log('✅ External ID prepared for Smooch widget');
             
-            // Log each message for debugging
-            sunshineData.messages.forEach((msg, index) => {
-              // eslint-disable-next-line no-console
-              console.log(`📝 Sunshine Message ${index + 1}: [${msg.sender}] ${msg.text}`);
-            });
-            
-            return sunshineData.messages;
+            return []; // Return empty array, widget will show real conversation
 
           } catch (error) {
             // eslint-disable-next-line no-console
-            console.error('❌ Failed to retrieve conversation history from Sunshine:', error);
+            console.error('❌ Failed to prepare external ID for Smooch widget:', error);
             // Re-throw the error to be handled by the calling function
             throw error;
           }
@@ -234,7 +230,7 @@ const SupportPage = () => {
         
         // Show specific error message based on the failure
         let errorMessage = 'Failed to initialize support. ';
-        if (error.message.includes('No user ID found')) {
+        if (error.message.includes('No external ID found')) {
           errorMessage += 'Please start a chat session first before accessing support.';
         } else if (error.message.includes('No conversation history found')) {
           errorMessage += 'No conversation history found. Please send a message in the main chat first.';

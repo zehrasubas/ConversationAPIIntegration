@@ -36,7 +36,7 @@ const initializeConversation = async (psid) => {
   }
 };
 
-const sendMessage = async (message, psid) => {
+const sendMessage = async (message, psid, externalId = null) => {
   try {
     if (!message || !psid) {
       throw new Error('Message and PSID are required');
@@ -45,15 +45,22 @@ const sendMessage = async (message, psid) => {
     // COMMENTED OUT - Initialize conversation after Messenger Platform setup
     // await initializeConversation(psid);
 
+    const requestBody = {
+      message,
+      userId: psid,
+    };
+
+    // Add external ID if provided for Sunshine conversations
+    if (externalId) {
+      requestBody.externalId = externalId;
+    }
+
     const response = await fetch(`${BASE_URL}/api/messages/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        message,
-        userId: psid,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
