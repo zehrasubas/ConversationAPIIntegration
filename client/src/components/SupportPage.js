@@ -93,7 +93,7 @@ const SupportPage = () => {
           console.log('🔧 Getting app token for Smooch initialization...');
           
           // First, get app token from our API
-          const tokenResponse = await fetch('/api/smooch/generate-app-token', {
+          const tokenResponse = await fetch('/api/test-smooch', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -101,10 +101,17 @@ const SupportPage = () => {
           });
 
           if (!tokenResponse.ok) {
-            throw new Error(`Failed to get app token: ${tokenResponse.status}`);
+            const errorText = await tokenResponse.text();
+            console.error('❌ Test endpoint error response:', errorText);
+            throw new Error(`Failed to test endpoint: ${tokenResponse.status} - ${errorText}`);
           }
 
           const tokenData = await tokenResponse.json();
+          console.log('✅ Test endpoint response:', tokenData);
+          
+          // For now, just log the environment check and stop here
+          throw new Error('Test endpoint completed - stopping here for debugging');
+
           if (!tokenData.success || !tokenData.appToken) {
             throw new Error('No app token received from API');
           }
