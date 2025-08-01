@@ -59,7 +59,6 @@ const SupportPage = ({ user }) => {
       }
     }
   }, []);
-  const [sessionId] = useState(() => 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
   const hasInitialized = useRef(false);
 
   /* eslint-disable react-hooks/exhaustive-deps */
