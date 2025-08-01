@@ -1,6 +1,7 @@
 // Facebook Webhook Handler for Vercel
 const fetch = require('node-fetch');
 const messageStore = require('./shared/messageStore');
+const sunshineStore = require('./shared/sunshineConversationStore');
 
 // Send message to Facebook
 async function sendToFacebook(recipientId, text) {
@@ -153,9 +154,44 @@ export default async function handler(req, res) {
                 console.log('🔄 About to store message:', JSON.stringify(incomingMessage, null, 2));
                 console.log('🔄 Storing for sender ID:', senderId);
                 
+                // Store in local message store (existing functionality)
                 const storedMessage = messageStore.addMessage(senderId, incomingMessage);
-                console.log('✅ Successfully stored message:', JSON.stringify(storedMessage, null, 2));
+                console.log('✅ Successfully stored message in local store:', JSON.stringify(storedMessage, null, 2));
                 console.log('🔍 Current message count for user:', messageStore.getMessages(senderId).length);
+
+                // Create or update Sunshine conversation - REQUIRED, NO FALLBACKS
+                console.log('🌞 Processing Sunshine conversation for PSID:', senderId);
+                
+                // Get or create Sunshine conversation for this Facebook user
+                const conversationInfo = await sunshineStore.getOrCreateConversation(
+                  senderId, 
+                  webhookEvent.message.text
+                );
+                
+                if (conversationInfo.isNew) {
+                  console.log('✨ Created new Sunshine conversation:', conversationInfo.conversationId);
+                  console.log('👤 Sunshine user ID:', conversationInfo.userId);
+                } else {
+                  console.log('📝 Using existing Sunshine conversation:', conversationInfo.conversationId);
+                  
+                  // Add message to existing conversation
+                  const messageAdded = await sunshineStore.addMessageToConversation(
+                    senderId,
+                    webhookEvent.message.text,
+                    'user' // Message from Facebook user
+                  );
+                  
+                  if (!messageAdded) {
+                    throw new Error('Failed to add message to Sunshine conversation');
+                  }
+                  
+                  console.log('✅ Added message to existing Sunshine conversation');
+                }
+                
+                // Log current conversation mappings for debugging
+                const allConversations = sunshineStore.getAllConversations();
+                console.log('📊 Current Sunshine conversation mappings:', allConversations.length);
+
               } catch (error) {
                 console.error('❌ Error storing message:', error);
                 console.error('❌ Error stack:', error.stack);

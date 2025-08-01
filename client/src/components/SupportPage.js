@@ -1,36 +1,38 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './SupportPage.css';
 
-const SupportPage = ({ user }) => {
+const SupportPage = () => {
   const [ticketCreated, setTicketCreated] = useState(false);
   const [ticketId, setTicketId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Clear Zendesk conversations and prepare for fresh session
+  // Clear any previous widget sessions and prepare for fresh Smooch session
   useEffect(() => {
-    const clearZendeskData = () => {
+    const clearPreviousWidgetData = () => {
       try {
-        // Clear Zendesk-related data (but NOT conversationHistory yet - we need it first!)
+        // Clear any previous widget-related data for fresh session
         localStorage.removeItem('zE_oauth');
         localStorage.removeItem('ZD-store');
         localStorage.removeItem('ZD-suid');
         localStorage.removeItem('ZD-buid');
         
-        // Clear Zendesk session storage
+        // Clear widget session storage
         Object.keys(sessionStorage).forEach(key => {
-          if (key.toLowerCase().includes('zendesk') || 
+          if (key.toLowerCase().includes('smooch') || 
+              key.toLowerCase().includes('zendesk') || 
               key.toLowerCase().includes('ze_') ||
               key.toLowerCase().includes('zd-')) {
             sessionStorage.removeItem(key);
           }
         });
 
-        // Clear any Zendesk cookies if possible
+        // Clear any widget cookies if possible
         document.cookie.split(";").forEach(cookie => {
           const eqPos = cookie.indexOf("=");
           const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-          if (name.toLowerCase().includes('zendesk') || 
+          if (name.toLowerCase().includes('smooch') ||
+              name.toLowerCase().includes('zendesk') || 
               name.toLowerCase().includes('ze_') ||
               name.toLowerCase().includes('zd-')) {
             document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
@@ -38,25 +40,30 @@ const SupportPage = ({ user }) => {
         });
         
         // eslint-disable-next-line no-console
-        console.log('🧹 Cleared all Zendesk data for fresh session');
+        console.log('🧹 Cleared all previous widget data for fresh session');
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Error clearing Zendesk data:', error);
+        console.error('❌ Error clearing widget data:', error);
       }
     };
 
-    clearZendeskData();
+    clearPreviousWidgetData();
     
-    // Force clear any existing Zendesk widget
-    if (window.zE) {
+    // Force clear any existing widget instances
+    if (window.Smooch) {
       try {
-        window.zE('messenger', 'logout');
         // eslint-disable-next-line no-console
-        console.log('🚪 Logged out of existing Zendesk session');
+        console.log('🚪 Clearing existing Smooch session');
+        window.Smooch.destroy();
+        // eslint-disable-next-line no-console
+        console.log('✅ Cleared existing Smooch session');
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.log('ℹ️ No existing Zendesk session to logout');
+        console.log('ℹ️ No existing Smooch session to clear');
       }
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('ℹ️ No existing widget session to clear');
     }
   }, []);
   const hasInitialized = useRef(false);
@@ -76,28 +83,60 @@ const SupportPage = ({ user }) => {
     
 
 
-    const initializeZendeskWidget = (conversationHistory, replayResult = null) => {
+    const initializeSmoochWidget = () => {
       // eslint-disable-next-line no-console
-      console.log('🚀 Initializing modern Zendesk Web Widget...');
+      console.log('🚀 Initializing Smooch SDK widget...');
       
-      // Load Zendesk script if not already loaded
-      if (!window.zE) {
+      const initializeSmooch = () => {
+        try {
+          // eslint-disable-next-line no-console
+          console.log('🔧 Initializing Smooch with App ID: 66fe310b1f5b6f0929cb3051');
+          
+          window.Smooch.init({
+            appId: '66fe310b1f5b6f0929cb3051' // Your App ID from screenshot
+          }).then(() => {
+            // eslint-disable-next-line no-console
+            console.log('✅ Smooch widget ready - can display API conversations');
+            
+            // Widget is ready and will automatically show the conversation from our Sunshine API
+            // No need to manually inject history - Smooch displays the actual conversation
+            setTicketCreated(true);
+            setTicketId('smooch-conversation-' + Date.now());
+            setLoading(false);
+            
+            // eslint-disable-next-line no-console
+            console.log('🎉 Support widget initialized successfully');
+            
+          }).catch((error) => {
+            // eslint-disable-next-line no-console
+            console.error('❌ Failed to initialize Smooch:', error);
+            setError('Failed to initialize support widget');
+            setLoading(false);
+          });
+          
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('❌ Error initializing Smooch:', error);
+          setError('Failed to initialize support widget');
+          setLoading(false);
+        }
+      };
+      
+      // Load Smooch SDK if not already loaded
+      if (!window.Smooch) {
         const script = document.createElement('script');
-        script.id = 'ze-snippet';
-        script.src = 'https://static.zdassets.com/ekr/snippet.js?key=d00c5a70-85da-47ea-bd7d-7445bcc31c38';
+        script.src = 'https://cdn.smooch.io/smooch.min.js';
         script.async = true;
         
         script.onload = () => {
           // eslint-disable-next-line no-console
-          console.log('✅ Zendesk Web Widget script loaded');
-          setTimeout(() => {
-            configureModernWidget(conversationHistory);
-          }, 1000);
+          console.log('✅ Smooch SDK script loaded');
+          initializeSmooch();
         };
         
         script.onerror = () => {
           // eslint-disable-next-line no-console
-          console.error('❌ Failed to load Zendesk script');
+          console.error('❌ Failed to load Smooch SDK script');
           setError('Failed to load support widget');
           setLoading(false);
         };
@@ -105,205 +144,104 @@ const SupportPage = ({ user }) => {
         document.head.appendChild(script);
       } else {
         // eslint-disable-next-line no-console
-        console.log('✅ Zendesk already loaded, configuring...');
-        setTimeout(() => {
-          configureModernWidget(conversationHistory);
-        }, 500);
+        console.log('✅ Smooch SDK already loaded, initializing...');
+        initializeSmooch();
       }
-    };
-
-    const configureModernWidget = (conversationHistory) => {
-      // eslint-disable-next-line no-console
-      console.log('⚙️ Configuring modern Zendesk widget...');
-      
-      // Robust widget readiness check
-      const waitForZendeskReady = () => {
-        return new Promise((resolve, reject) => {
-          let attempts = 0;
-          const maxAttempts = 50; // 5 seconds max
-          
-          const checkReady = () => {
-            attempts++;
-            
-            // Check if zE exists and has messenger functionality
-            if (window.zE && 
-                typeof window.zE === 'function' &&
-                window.zE.messenger !== undefined) {
-              
-              try {
-                // Test if we can safely call zE methods
-                window.zE('messenger', 'get', 'display:state', (state) => {
-                  // eslint-disable-next-line no-console
-                  console.log('✅ Zendesk widget is fully ready, state:', state);
-                  resolve();
-                });
-              } catch (error) {
-                if (attempts >= maxAttempts) {
-                  // eslint-disable-next-line no-console
-                  console.error('❌ Zendesk widget failed to initialize after maximum attempts');
-                  reject(new Error('Widget initialization timeout'));
-                } else {
-                  setTimeout(checkReady, 100);
-                }
-              }
-            } else {
-              if (attempts >= maxAttempts) {
-                // eslint-disable-next-line no-console
-                console.error('❌ Zendesk widget not available after maximum attempts');
-                reject(new Error('Widget not available'));
-              } else {
-                setTimeout(checkReady, 100);
-              }
-            }
-          };
-          
-          checkReady();
-        });
-      };
-
-      // Initialize widget once it's ready
-      waitForZendeskReady()
-        .then(() => {
-          try {
-            // eslint-disable-next-line no-console
-            console.log('🔧 Widget is ready, starting configuration...');
-            
-            // Set up widget event listeners first
-            window.zE('messenger:on', 'open', () => {
-              // eslint-disable-next-line no-console
-              console.log('📂 Widget opened');
-            });
-
-            window.zE('messenger:on', 'close', () => {
-              // eslint-disable-next-line no-console
-              console.log('📕 Widget closed');
-            });
-
-            window.zE('messenger:on', 'unreadCountChanged', (count) => {
-              // eslint-disable-next-line no-console
-              console.log(`📬 Unread count changed: ${count}`);
-            });
-
-            // Show the widget
-            window.zE('messenger', 'show');
-            
-            // Set conversation tags for chat transfer identification
-            window.zE('messenger:set', 'conversationTags', ['chat-transfer', 'external-handoff', 'support-request']);
-            
-            // Format and set conversation history using conversation fields
-            if (conversationHistory && conversationHistory.length > 0) {
-              // eslint-disable-next-line no-console
-              console.log('📝 Adding conversation context via conversation fields...');
-              
-              // Format history summary for agents
-              const historySummary = conversationHistory.map((msg, index) => {
-                const time = new Date(msg.timestamp || Date.now()).toLocaleTimeString();
-                const speaker = msg.sender === 'user' ? 'Customer' : 'Assistant';
-                return `[${time}] ${speaker}: ${msg.text}`;
-              }).join(' | ');
-              
-              // Set conversation fields that agents can see
-              window.zE('messenger:set', 'conversationFields', [
-                { 
-                  id: 'chat_history_summary', 
-                  value: historySummary 
-                },
-                { 
-                  id: 'message_count', 
-                  value: conversationHistory.length.toString() 
-                },
-                { 
-                  id: 'transfer_timestamp', 
-                  value: new Date().toISOString() 
-                },
-                { 
-                  id: 'handoff_reason', 
-                  value: 'Customer requested human support from chat widget' 
-                }
-              ]);
-              
-              // eslint-disable-next-line no-console
-              console.log('✅ Conversation context added via fields');
-              console.log(`📊 Context: ${conversationHistory.length} messages transferred`);
-              setTicketCreated(true);
-              setTicketId('widget-conversation-' + Date.now());
-            } else {
-              // eslint-disable-next-line no-console
-              console.log('ℹ️ No conversation history found - opening fresh support chat');
-              setTicketCreated(false);
-              setTicketId(null);
-            }
-            
-            // eslint-disable-next-line no-console
-            console.log('✅ Widget configuration complete');
-            
-            // Open widget with a single, reliable attempt
-            setTimeout(() => {
-              try {
-                window.zE('messenger', 'open');
-                // eslint-disable-next-line no-console
-                console.log('✅ Widget opened successfully');
-                setLoading(false);
-              } catch (error) {
-                // eslint-disable-next-line no-console
-                console.error('❌ Error opening widget:', error);
-                setLoading(false);
-              }
-            }, 500);
-            
-          } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error('❌ Error configuring widget:', error);
-            setError('Failed to configure support widget');
-            setLoading(false);
-          }
-        })
-        .catch((error) => {
-          // eslint-disable-next-line no-console
-          console.error('❌ Widget initialization failed:', error);
-          setError('Support widget failed to initialize');
-          setLoading(false);
-        });
     };
 
     const initializeSupportPage = async () => {
       try {
-        // IMPORTANT: Get conversation history FIRST before clearing anything
-        const getConversationHistory = () => {
+        // Get conversation history from Sunshine API ONLY
+        const getConversationHistory = async () => {
           try {
-            const stored = localStorage.getItem('conversationHistory');
-            const history = stored ? JSON.parse(stored) : [];
+            // Try to get user ID from various sources
+            let userId = null;
+            
+            // First, check if user is logged in via Facebook
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              const parsedUser = JSON.parse(storedUser);
+              userId = parsedUser.id; // Facebook user ID
+              // eslint-disable-next-line no-console
+              console.log('👤 Using Facebook user ID:', userId);
+            }
+            
+            // If no Facebook user, check for session-based ID
+            if (!userId) {
+              userId = sessionStorage.getItem('chatUserId');
+              if (!userId) {
+                throw new Error('No user ID found - user must have an active chat session to access support');
+              }
+              // eslint-disable-next-line no-console
+              console.log('🔒 Using session user ID:', userId);
+            }
+
             // eslint-disable-next-line no-console
-            console.log('📚 Retrieved conversation history BEFORE clearing:', history);
-            console.log('📊 Found', history.length, 'messages from main chat');
+            console.log('🌞 Fetching Sunshine conversation history for user:', userId);
+
+            // Fetch from Sunshine Conversations API - NO FALLBACKS
+            const response = await fetch(`/api/zendesk/get-conversation-history?psid=${encodeURIComponent(userId)}`);
+            
+            if (!response.ok) {
+              throw new Error(`Sunshine API error: ${response.status} ${response.statusText}`);
+            }
+
+            const sunshineData = await response.json();
+            
+            if (!sunshineData.success) {
+              throw new Error(`Sunshine API returned error: ${sunshineData.error || 'Unknown error'}`);
+            }
+
+            if (!sunshineData.messages || sunshineData.messages.length === 0) {
+              throw new Error('No conversation history found in Sunshine - user must start a chat first');
+            }
+
+            // eslint-disable-next-line no-console
+            console.log('✅ Retrieved conversation history from Sunshine:', sunshineData.messages);
+            console.log('📊 Found', sunshineData.messages.length, 'messages from Sunshine API');
             
             // Log each message for debugging
-            history.forEach((msg, index) => {
+            sunshineData.messages.forEach((msg, index) => {
               // eslint-disable-next-line no-console
-              console.log(`📝 Message ${index + 1}: [${msg.sender}] ${msg.text}`);
+              console.log(`📝 Sunshine Message ${index + 1}: [${msg.sender}] ${msg.text}`);
             });
             
-            return history;
+            return sunshineData.messages;
+
           } catch (error) {
             // eslint-disable-next-line no-console
-            console.error('❌ Error retrieving conversation history:', error);
-            return [];
+            console.error('❌ Failed to retrieve conversation history from Sunshine:', error);
+            // Re-throw the error to be handled by the calling function
+            throw error;
           }
         };
 
-        // GET the conversation history first
-        const conversationHistory = getConversationHistory();
+        // Validate that conversation history exists (throws error if not)
+        await getConversationHistory();
         
-        // NOW clear localStorage for future sessions (but keep the history we just got)
+        // Clear localStorage for future sessions (but conversation now comes from Sunshine)
         localStorage.removeItem('conversationHistory');
         
-        // Initialize Zendesk widget with simple approach (no API calls needed)
-        initializeZendeskWidget(conversationHistory);
+        // Initialize Smooch SDK widget (will display real Sunshine conversation)
+        initializeSmoochWidget();
         
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('❌ Failed to initialize support page:', error);
-        setError('Failed to initialize support. Please try again.');
+        
+        // Show specific error message based on the failure
+        let errorMessage = 'Failed to initialize support. ';
+        if (error.message.includes('No user ID found')) {
+          errorMessage += 'Please start a chat session first before accessing support.';
+        } else if (error.message.includes('No conversation history found')) {
+          errorMessage += 'No conversation history found. Please send a message in the main chat first.';
+        } else if (error.message.includes('Sunshine API')) {
+          errorMessage += 'Unable to connect to support system. Please try again later.';
+        } else {
+          errorMessage += 'Please try again.';
+        }
+        
+        setError(errorMessage);
         setLoading(false);
       }
     };
@@ -395,8 +333,8 @@ const SupportPage = ({ user }) => {
           </div>
         )}
         
-        <div id="zendesk-widget-container">
-          {/* Zendesk widget appears here automatically */}
+        <div id="smooch-widget-container">
+          {/* Smooch widget appears here automatically */}
         </div>
       </div>
     </div>

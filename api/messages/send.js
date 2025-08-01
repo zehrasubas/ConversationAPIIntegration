@@ -1,6 +1,7 @@
 // Send Message API Endpoint for Messenger Platform
 const fetch = require('node-fetch');
 const messageStore = require('../shared/messageStore');
+const sunshineStore = require('../shared/sunshineConversationStore');
 
 // Send message to Facebook Messenger Platform
 async function sendToFacebookMessenger(recipientPSID, text) {
@@ -83,6 +84,35 @@ export default async function handler(req, res) {
 
     const storedMessage = messageStore.addMessage(userId, userMessage);
     console.log('💾 User message stored:', storedMessage);
+
+    // Create or update Sunshine conversation for this user - REQUIRED, NO FALLBACKS
+    console.log('🌞 Processing Sunshine conversation for website user:', userId);
+    
+    // Get or create Sunshine conversation for this website user
+    const conversationInfo = await sunshineStore.getOrCreateConversation(
+      userId, 
+      message
+    );
+    
+    if (conversationInfo.isNew) {
+      console.log('✨ Created new Sunshine conversation for website user:', conversationInfo.conversationId);
+      console.log('👤 Sunshine user ID:', conversationInfo.userId);
+    } else {
+      console.log('📝 Using existing Sunshine conversation:', conversationInfo.conversationId);
+      
+      // Add message to existing conversation
+      const messageAdded = await sunshineStore.addMessageToConversation(
+        userId,
+        message,
+        'user' // Message from website user
+      );
+      
+      if (!messageAdded) {
+        throw new Error('Failed to add website message to Sunshine conversation');
+      }
+      
+      console.log('✅ Added website message to Sunshine conversation');
+    }
 
     // Check if Messenger Platform is configured
     if (!process.env.PAGE_ACCESS_TOKEN) {

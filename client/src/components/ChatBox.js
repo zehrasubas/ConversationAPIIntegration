@@ -12,13 +12,31 @@ const ChatBox = ({ user }) => {
   const messagesEndRef = useRef(null);
   const sseConnectionRef = useRef(null);
 
+  // Get or create user ID (Facebook ID or session-based ID)
+  const getUserId = useCallback(() => {
+    // If user is logged in with Facebook, use their ID
+    if (user?.id) {
+      return user.id;
+    }
+    
+    // Otherwise, get or create session-based ID
+    let sessionUserId = sessionStorage.getItem('chatUserId');
+    if (!sessionUserId) {
+      sessionUserId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('chatUserId', sessionUserId);
+      // eslint-disable-next-line no-console
+      console.log('🆔 Generated new session user ID:', sessionUserId);
+    }
+    return sessionUserId;
+  }, [user]);
+
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
   
   // Check if Messenger integration is available
   const hasMessengerIntegration = Boolean(user?.psid);
 
-  // Load conversation history from localStorage on component mount
+  // Load conversation history from Sunshine API on component mount
   useEffect(() => {
     const loadConversationHistory = () => {
       try {
@@ -28,17 +46,16 @@ const ChatBox = ({ user }) => {
           console.log('🚫 Support page detected - not loading conversation history');
           return;
         }
+
+        // eslint-disable-next-line no-console
+        console.log('🌞 Loading conversation history from Sunshine API only');
         
-        const stored = localStorage.getItem('conversationHistory');
-        if (stored) {
-          const history = JSON.parse(stored);
-          // eslint-disable-next-line no-console
-          console.log('📝 Loaded conversation history:', history.length, 'messages');
-          setMessages(history);
-        }
+        // We'll load from server via syncWithServerMessages instead of localStorage
+        // No localStorage fallback - Sunshine API only
+        
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Error loading conversation history:', error);
+        console.error('❌ Error during conversation history setup:', error);
       }
     };
 
@@ -54,19 +71,8 @@ const ChatBox = ({ user }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Save conversation history to localStorage whenever messages change
-  useEffect(() => {
-    if (messages.length > 0) {
-      try {
-        localStorage.setItem('conversationHistory', JSON.stringify(messages));
-        // eslint-disable-next-line no-console
-        console.log('💾 Saved conversation history:', messages.length, 'messages');
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('❌ Error saving conversation history:', error);
-      }
-    }
-  }, [messages]);
+  // No longer save to localStorage - Sunshine API is the source of truth
+  // Remove localStorage conversation history saving
 
   // Handle new messages from SSE stream
   const handleNewMessage = useCallback((newMessage) => {
@@ -90,14 +96,16 @@ const ChatBox = ({ user }) => {
 
   // Sync with server messages when opening chat
   const syncWithServerMessages = useCallback(async () => {
-    if (!isAuthenticated || !user?.psid) return;
-    
     try {
       // eslint-disable-next-line no-console
       console.log('🔄 Syncing with server messages...');
       
-      // Fetch all messages from server
-      const response = await chatService.fetchMessageHistory(user.psid);
+      const currentUserId = getUserId();
+      // eslint-disable-next-line no-console
+      console.log('🔄 Using user ID for sync:', currentUserId);
+      
+      // Fetch all messages from server (try Sunshine first, then fallback to old API)
+      const response = await chatService.fetchMessageHistory(currentUserId);
       
       if (response?.success && response.messages?.length > 0) {
         // eslint-disable-next-line no-console
@@ -123,7 +131,7 @@ const ChatBox = ({ user }) => {
       // eslint-disable-next-line no-console
       console.error('❌ Error syncing with server:', error);
     }
-  }, [isAuthenticated, user?.psid, messages]);
+  }, [getUserId, messages]);
 
   // Connect to SSE stream for real-time messages
   const connectToMessageStream = useCallback(() => {
@@ -223,7 +231,7 @@ const ChatBox = ({ user }) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              userId: user.id
+              userId: getUserId()
             })
           });
 
@@ -259,7 +267,8 @@ const ChatBox = ({ user }) => {
       // Send message to backend (which will try to send to Messenger)
       // eslint-disable-next-line no-console
       console.log('📤 Sending message to backend - Messenger Platform setup pending...');
-      const response = await chatService.sendMessage(inputMessage, userPSID || user.id);
+      const currentUserId = getUserId();
+      const response = await chatService.sendMessage(inputMessage, userPSID || currentUserId);
 
       // eslint-disable-next-line no-console
       console.log('Message sent successfully:', response);
@@ -302,28 +311,15 @@ const ChatBox = ({ user }) => {
   };
 
   const handleGetSupport = () => {
-    // eslint-disable-next-line no-console
     console.log('🎫 Redirecting to support page...');
     // eslint-disable-next-line no-console
     console.log('📝 Current conversation history:', messages);
     // eslint-disable-next-line no-console
     console.log('🔍 DEBUG: Messages length:', messages.length);
     
-    // Force save conversation history before redirect
-    try {
-      localStorage.setItem('conversationHistory', JSON.stringify(messages));
-      // eslint-disable-next-line no-console
-      console.log('💾 DEBUG: Manually saved conversation history before redirect');
-      
-      // Verify it was saved
-      const saved = localStorage.getItem('conversationHistory');
-      const parsed = saved ? JSON.parse(saved) : [];
-      // eslint-disable-next-line no-console
-      console.log('✅ DEBUG: Verified saved history:', parsed);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Error saving conversation history:', error);
-    }
+    // Conversation history is now stored in Sunshine API - no localStorage needed
+    // eslint-disable-next-line no-console
+    console.log('🌞 Conversation history available via Sunshine API');
     
     // Redirect to support page
     window.location.href = '/support';

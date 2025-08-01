@@ -399,7 +399,7 @@ function App() {
   if (currentPath === '/support') {
     return (
       <div className="App">
-        <SupportPage user={user} />
+        <SupportPage />
       </div>
     );
   }

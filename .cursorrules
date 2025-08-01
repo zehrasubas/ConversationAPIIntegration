@@ -13,7 +13,7 @@
 - Avoid unused variables and imports - remove them before committing
 - Use proper React hooks dependency arrays to avoid warnings
 - When in doubt about ESLint compliance, run the build locally first
-- Check for un-used variables before consider the job complete
+- Check for unused variables before consider the job complete
 
 ## ESLint Compliance Rules
 - NEVER ignore ESLint errors in production code
