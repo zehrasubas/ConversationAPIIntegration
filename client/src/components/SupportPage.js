@@ -154,12 +154,58 @@ const SupportPage = ({ user }) => {
       // eslint-disable-next-line no-console
       console.log('⚙️ Configuring modern Zendesk widget...');
       
-      // Wait for Zendesk to be fully loaded
-      const checkZE = setInterval(() => {
-        if (window.zE) {
-          clearInterval(checkZE);
+      // Robust widget readiness check
+      const waitForZendeskReady = () => {
+        return new Promise((resolve, reject) => {
+          let attempts = 0;
+          const maxAttempts = 50; // 5 seconds max
           
+          const checkReady = () => {
+            attempts++;
+            
+            // Check if zE exists and has messenger functionality
+            if (window.zE && 
+                typeof window.zE === 'function' &&
+                window.zE.messenger !== undefined) {
+              
+              try {
+                // Test if we can safely call zE methods
+                window.zE('messenger', 'get', 'display:state', (state) => {
+                  // eslint-disable-next-line no-console
+                  console.log('✅ Zendesk widget is fully ready, state:', state);
+                  resolve();
+                });
+              } catch (error) {
+                if (attempts >= maxAttempts) {
+                  // eslint-disable-next-line no-console
+                  console.error('❌ Zendesk widget failed to initialize after maximum attempts');
+                  reject(new Error('Widget initialization timeout'));
+                } else {
+                  setTimeout(checkReady, 100);
+                }
+              }
+            } else {
+              if (attempts >= maxAttempts) {
+                // eslint-disable-next-line no-console
+                console.error('❌ Zendesk widget not available after maximum attempts');
+                reject(new Error('Widget not available'));
+              } else {
+                setTimeout(checkReady, 100);
+              }
+            }
+          };
+          
+          checkReady();
+        });
+      };
+
+      // Initialize widget once it's ready
+      waitForZendeskReady()
+        .then(() => {
           try {
+            // eslint-disable-next-line no-console
+            console.log('🔧 Widget is ready, starting configuration...');
+            
             // Set up widget event listeners first
             window.zE('messenger:on', 'open', () => {
               // eslint-disable-next-line no-console
@@ -188,94 +234,37 @@ const SupportPage = ({ user }) => {
             if (replayResult?.conversationId) {
               // eslint-disable-next-line no-console
               console.log('🌞 Sunshine conversation created:', replayResult.conversationId);
-              console.log('👤 User ID from Sunshine:', replayResult.userId);
-              console.log('📊 Messages transferred:', replayResult.messagesReplayed);
+              setTicketCreated(true);
+              setTicketId(replayResult.conversationId);
             }
             
-            // Open widget with multiple attempts to ensure it opens
-            const openWidget = () => {
+            // Open widget with a single, reliable attempt
+            setTimeout(() => {
               try {
                 window.zE('messenger', 'open');
                 // eslint-disable-next-line no-console
-                console.log('✅ DEBUG: Widget opened successfully');
-                
-                // Force widget to be visible and on top
-                setTimeout(() => {
-                  const iframe = document.querySelector('iframe[title*="Messaging"]') || 
-                                document.querySelector('iframe[title*="messaging"]') ||
-                                document.querySelector('iframe[title*="Chat"]');
-                  if (iframe) {
-                    iframe.style.display = 'block !important';
-                    iframe.style.visibility = 'visible !important';
-                    iframe.style.zIndex = '9999999 !important';
-                    // eslint-disable-next-line no-console
-                    console.log('✅ Widget iframe forced visible');
-                  }
-                }, 500);
-              } catch (error) {
-                // eslint-disable-next-line no-console
-                console.error('❌ Error opening widget:', error);
-              }
-            };
-
-            // Try opening immediately
-            openWidget();
-            
-            // Try again after a delay in case first attempt failed
-            setTimeout(openWidget, 1000);
-            setTimeout(openWidget, 3000);
-            
-            // Set metadata for the conversation
-            setTimeout(() => {
-              try {
-                // Sunshine Conversations approach
-                if (replayResult?.conversationId) {
-                  // eslint-disable-next-line no-console
-                  console.log('🌞 Using Sunshine Conversations with conversation history');
-                  console.log(`📊 Successfully transferred ${replayResult.messagesReplayed} messages`);
-                  console.log(`🆔 Conversation ID: ${replayResult.conversationId}`);
-                  console.log(`👤 User ID: ${replayResult.userId}`);
-                  
-                  setTicketCreated(true);
-                  setTicketId(replayResult.conversationId);
-                } else {
-                  throw new Error('No conversation ID returned from Sunshine Conversations');
-                }
-                
-                // Clear loading since we're done configuring
+                console.log('✅ Widget opened successfully');
                 setLoading(false);
               } catch (error) {
                 // eslint-disable-next-line no-console
-                console.error('❌ DEBUG: Failed to configure conversation:', error);
+                console.error('❌ Error opening widget:', error);
                 setLoading(false);
               }
             }, 500);
             
-            // eslint-disable-next-line no-console
-            console.log('✅ Zendesk widget configured with conversation history');
-            
-            // Force clear loading state
-            setTimeout(() => {
-              setLoading(false);
-              // eslint-disable-next-line no-console
-              console.log('🎯 Loading state cleared - widget should be visible');
-            }, 100);
-
           } catch (error) {
             // eslint-disable-next-line no-console
-            console.error('❌ Error configuring Zendesk widget:', error);
+            console.error('❌ Error configuring widget:', error);
+            setError('Failed to configure support widget');
             setLoading(false);
           }
-        }
-      }, 500);
-
-      // Timeout fallback
-      setTimeout(() => {
-        clearInterval(checkZE);
-        setLoading(false);
-        // eslint-disable-next-line no-console
-        console.log('⏰ Zendesk widget initialization complete');
-      }, 3000);
+        })
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('❌ Widget initialization failed:', error);
+          setError('Support widget failed to initialize');
+          setLoading(false);
+        });
     };
 
     const initializeSupportPage = async () => {
