@@ -112,9 +112,11 @@ const SupportPage = () => {
           // For now, just log the environment check and stop here
           throw new Error('Test endpoint completed - stopping here for debugging');
 
-          if (!tokenData.success || !tokenData.appToken) {
-            throw new Error('No app token received from API');
-          }
+          // Commented out to avoid unreachable code error - all code below until catch block
+          /*
+          // if (!tokenData.success || !tokenData.appToken) {
+          //   throw new Error('No app token received from API');
+          // }
 
           // eslint-disable-next-line no-console
           console.log('✅ App token received, initializing Smooch...');
@@ -127,32 +129,27 @@ const SupportPage = () => {
           };
 
           // eslint-disable-next-line no-console
-          console.log('🔧 Initializing Smooch with app token...');
+          console.log('🔧 Initializing Smooch with config:', smoochConfig);
 
-          window.Smooch.init(smoochConfig).then(() => {
+          Smooch.init(smoochConfig).then(() => {
             // eslint-disable-next-line no-console
-            console.log('✅ Smooch widget initialized with app token');
+            console.log('✅ Smooch initialized successfully');
             
-            // Get the external ID for this session
-            const supportExternalId = sessionStorage.getItem('supportExternalId');
             if (supportExternalId) {
               // eslint-disable-next-line no-console
-              console.log('🔑 Logging into Smooch with external ID:', supportExternalId);
+              console.log('🔑 Logging in with external ID:', supportExternalId);
               
-              // Login with external ID to show existing conversation
-              return window.Smooch.login(supportExternalId);
+              return Smooch.login(supportExternalId);
             } else {
-              // eslint-disable-next-line no-console
-              console.warn('⚠️ No external ID found - widget will start fresh');
-              return Promise.resolve();
+              throw new Error('No external ID found for support page');
             }
           }).then(() => {
             // eslint-disable-next-line no-console
-            console.log('✅ Smooch widget ready - displaying conversation for external ID');
+            console.log('✅ User logged in successfully');
             
-            // Widget is ready and will automatically show the conversation
-            setTicketCreated(true);
-            setTicketId('smooch-conversation-' + Date.now());
+            setUserState(null);
+            setUserLoggedIn(true);
+            setError(null);
             setLoading(false);
             
             // eslint-disable-next-line no-console
@@ -164,6 +161,7 @@ const SupportPage = () => {
             setError('Failed to initialize support widget');
             setLoading(false);
           });
+          */
           
         } catch (error) {
           // eslint-disable-next-line no-console
