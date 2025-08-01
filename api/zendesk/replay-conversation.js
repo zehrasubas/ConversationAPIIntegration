@@ -10,14 +10,8 @@ export default async function handler(req, res) {
   try {
     const { conversationHistory, userEmail, userName, sessionId } = req.body;
 
-    // Validate required fields
-    if (!userEmail || !userName) {
-      return res.status(400).json({ 
-        error: 'User email and name are required for Sunshine Conversations' 
-      });
-    }
-
-    console.log('🌞 Starting Sunshine Conversations for:', userName, userEmail);
+    // Note: userEmail and userName are optional since we're using anonymous approach
+    console.log('🌞 Starting Sunshine Conversations for anonymous customer');
     console.log('💬 History length:', conversationHistory?.length || 0);
 
     // Get Sunshine Conversations credentials from environment
@@ -34,12 +28,11 @@ export default async function handler(req, res) {
 
     // Step 1: Format conversation summary for Sunshine
     const formatConversationSummary = (messages) => {
-      const customerName = userName;
       const timestamp = new Date().toLocaleString();
       
       let summary = `📞 **Chat Transfer Summary**\n`;
       summary += `🕒 Transfer Time: ${timestamp}\n`;
-      summary += `👤 Customer: ${customerName}\n`;
+      summary += `👤 Customer: Anonymous Customer\n`;
       summary += `💬 Total Messages: ${messages.length}\n`;
       summary += `\n${'━'.repeat(50)}\n\n`;
       summary += `**Conversation History:**\n\n`;
@@ -66,6 +59,10 @@ export default async function handler(req, res) {
       ? formatConversationSummary(conversationHistory)
       : '👋 Customer requested human support. An agent will be with you shortly!';
 
+    // Generate anonymous external ID (no personal info)
+    const userExternalId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create conversation with anonymous userExternalId
     const response = await fetch(`${sunshineApiUrl}/conversations`, {
       method: 'POST',
       headers: {
@@ -75,17 +72,11 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         type: 'personal',
         participants: [{
-          user: {
-            profile: {
-              givenName: userName,
-              email: userEmail
-            }
-          }
+          userExternalId: userExternalId // Creates anonymous user automatically
         }],
         messages: [{
           author: { 
-            type: 'business',
-            displayName: 'Transfer Assistant'
+            type: 'business'
           },
           content: {
             type: 'text',
@@ -105,7 +96,9 @@ export default async function handler(req, res) {
     const userId = result.conversation.participants[0].userId;
 
     console.log('✅ Sunshine conversation created:', conversationId);
-    console.log('👤 User ID:', userId);
+    console.log('👤 Anonymous User External ID:', userExternalId);
+    console.log('👤 Sunshine User ID:', userId);
+    console.log('📝 Summary message included in conversation');
 
     // Step 3: Add follow-up message if needed
     if (conversationHistory && conversationHistory.length > 0) {
@@ -138,9 +131,7 @@ export default async function handler(req, res) {
     res.status(200).json({
       success: true,
       conversationId: conversationId,
-      userId: userId,
-      messagesReplayed: conversationHistory?.length || 0,
-      message: 'Conversation created in Sunshine Conversations successfully'
+      message: 'Anonymous conversation history successfully transferred to Zendesk Support'
     });
 
   } catch (error) {
