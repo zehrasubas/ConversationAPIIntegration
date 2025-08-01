@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       return summary;
     };
 
-    // Step 2: Create conversation with summary message using Sunshine API
+    // Step 2: Create anonymous user first, then conversation
 
     const conversationSummary = conversationHistory && conversationHistory.length > 0 
       ? formatConversationSummary(conversationHistory)
@@ -62,7 +62,34 @@ export default async function handler(req, res) {
     // Generate anonymous external ID (no personal info)
     const userExternalId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create conversation with anonymous userExternalId
+    // Step 2a: Create the user first
+    console.log('👤 Creating anonymous user...');
+    const userResponse = await fetch(`${sunshineApiUrl}/users`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        externalId: userExternalId,
+        profile: {
+          givenName: 'Anonymous',
+          surname: 'Customer'
+        }
+      })
+    });
+
+    if (!userResponse.ok) {
+      const userErrorData = await userResponse.text();
+      throw new Error(`Failed to create user: ${userResponse.status} - ${userErrorData}`);
+    }
+
+    const userData = await userResponse.json();
+    const userId = userData.user.id;
+    console.log('✅ Anonymous user created:', userId);
+
+    // Step 2b: Create conversation using the user ID
+    console.log('💬 Creating conversation...');
     const response = await fetch(`${sunshineApiUrl}/conversations`, {
       method: 'POST',
       headers: {
@@ -72,7 +99,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         type: 'personal',
         participants: [{
-          userExternalId: userExternalId // Creates anonymous user automatically
+          userId: userId // Use the actual userId instead of userExternalId
         }],
         messages: [{
           author: { 
@@ -93,11 +120,11 @@ export default async function handler(req, res) {
 
     const result = await response.json();
     const conversationId = result.conversation.id;
-    const userId = result.conversation.participants[0].userId;
+    const userIdFromResult = result.conversation.participants[0].userId;
 
     console.log('✅ Sunshine conversation created:', conversationId);
     console.log('👤 Anonymous User External ID:', userExternalId);
-    console.log('👤 Sunshine User ID:', userId);
+    console.log('👤 Sunshine User ID:', userIdFromResult);
     console.log('📝 Summary message included in conversation');
 
     // Step 3: Add follow-up message if needed
