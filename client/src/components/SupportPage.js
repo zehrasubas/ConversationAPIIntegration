@@ -7,8 +7,7 @@ const SupportPage = () => {
   // const [ticketId, setTicketId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userState, setUserState] = useState(null);
-  const [userLoggedIn, setUserLoggedIn] = useState(false);
+  // Removed unused state variables: userState, userLoggedIn
 
   // Clear any previous widget sessions and prepare for fresh Smooch session
   useEffect(() => {
@@ -142,8 +141,6 @@ const SupportPage = () => {
             // eslint-disable-next-line no-console
             console.log('✅ User logged in successfully');
             
-            setUserState(null);
-            setUserLoggedIn(true);
             setError(null);
             setLoading(false);
             
