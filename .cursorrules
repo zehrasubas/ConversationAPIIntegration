@@ -24,7 +24,7 @@
 
 ## Project Context
 - This is a project to implement conversation API features from facebook
-- Key existing features that must not be broken: login, messenger
+- Key existing features that must not be broken: login, messenger,
 - Login app id: 21102398933175
 - Messenger app id: 30902396742455
 - We deploy this project to vercel, the app url https://conversation-api-integration.vercel.app/
