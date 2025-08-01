@@ -101,29 +101,24 @@ export default async function handler(req, res) {
     const userId = userData.user.id;
     console.log('✅ Anonymous user created:', userId);
 
-    // Step 2b: Create conversation using the user ID
-    console.log('💬 Creating conversation...');
+    // Step 2b: Create conversation using the user ID (basic payload first)
+    console.log('💬 Creating conversation with basic payload...');
+    const basicPayload = {
+      type: 'personal',
+      participants: [{
+        userId: userId
+      }]
+    };
+    
+    console.log('💬 Basic payload:', JSON.stringify(basicPayload, null, 2));
+    
     const response = await fetch(`${sunshineApiUrl}/conversations`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        type: 'personal',
-        participants: [{
-          userId: userId // Use the actual userId instead of userExternalId
-        }],
-        messages: [{
-          author: { 
-            type: 'business'
-          },
-          content: {
-            type: 'text',
-            text: conversationSummary
-          }
-        }]
-      })
+      body: JSON.stringify(basicPayload)
     });
 
     console.log('💬 Conversation creation response status:', response.status);
@@ -139,10 +134,42 @@ export default async function handler(req, res) {
     const conversationId = result.conversation.id;
     const userIdFromResult = result.conversation.participants[0].userId;
 
-    console.log('✅ Sunshine conversation created:', conversationId);
+    console.log('✅ Basic conversation created successfully:', conversationId);
     console.log('👤 Anonymous User External ID:', userExternalId);
     console.log('👤 Sunshine User ID:', userIdFromResult);
-    console.log('📝 Summary message included in conversation');
+
+    // Step 2c: Add the summary message to the conversation
+    console.log('📝 Adding summary message to conversation...');
+    try {
+      const messageResponse = await fetch(`${sunshineApiUrl}/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          author: { 
+            type: 'business'
+          },
+          content: {
+            type: 'text',
+            text: conversationSummary
+          }
+        })
+      });
+
+      console.log('📝 Message response status:', messageResponse.status);
+      console.log('📝 Message response ok:', messageResponse.ok);
+
+      if (messageResponse.ok) {
+        console.log('✅ Summary message added successfully');
+      } else {
+        const messageErrorData = await messageResponse.text();
+        console.warn('⚠️ Failed to add summary message:', messageErrorData);
+      }
+    } catch (messageError) {
+      console.warn('⚠️ Error adding summary message:', messageError.message);
+    }
 
     // Step 3: Add follow-up message if needed
     if (conversationHistory && conversationHistory.length > 0) {
