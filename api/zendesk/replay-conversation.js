@@ -19,12 +19,21 @@ export default async function handler(req, res) {
     const keyId = process.env.ZENDESK_SUNSHINE_KEY_ID;
     const secret = process.env.ZENDESK_SUNSHINE_SECRET;
 
+    // Debug environment variables (without exposing secrets)
+    console.log('🔑 Environment variables check:');
+    console.log('📱 App ID:', appId ? `${appId.substring(0, 8)}...` : 'MISSING');
+    console.log('🔐 Key ID:', keyId ? `${keyId.substring(0, 8)}...` : 'MISSING');
+    console.log('🔒 Secret:', secret ? `${secret.substring(0, 4)}...` : 'MISSING');
+
     if (!appId || !keyId || !secret) {
       throw new Error('Missing Sunshine Conversations credentials. Please set ZENDESK_SUNSHINE_APP_ID, ZENDESK_SUNSHINE_KEY_ID, and ZENDESK_SUNSHINE_SECRET environment variables.');
     }
 
     const sunshineApiUrl = `https://api.smooch.io/v2/apps/${appId}`;
     const authHeader = `Basic ${Buffer.from(`${keyId}:${secret}`).toString('base64')}`;
+
+    console.log('🌐 Sunshine API URL:', sunshineApiUrl);
+    console.log('🔐 Auth header format:', authHeader ? 'Basic [REDACTED]' : 'MISSING');
 
     // Step 1: Format conversation summary for Sunshine
     const formatConversationSummary = (messages) => {
@@ -79,8 +88,12 @@ export default async function handler(req, res) {
       })
     });
 
+    console.log('👤 User creation response status:', userResponse.status);
+    console.log('👤 User creation response ok:', userResponse.ok);
+
     if (!userResponse.ok) {
       const userErrorData = await userResponse.text();
+      console.error('❌ User creation failed with response:', userErrorData);
       throw new Error(`Failed to create user: ${userResponse.status} - ${userErrorData}`);
     }
 
@@ -113,8 +126,12 @@ export default async function handler(req, res) {
       })
     });
 
+    console.log('💬 Conversation creation response status:', response.status);
+    console.log('💬 Conversation creation response ok:', response.ok);
+
     if (!response.ok) {
       const errorData = await response.text();
+      console.error('❌ Conversation creation failed with response:', errorData);
       throw new Error(`Failed to create Sunshine conversation: ${response.status} - ${errorData}`);
     }
 
@@ -163,9 +180,15 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Error creating Sunshine conversation:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    
     res.status(500).json({
       error: 'Failed to create Sunshine conversation',
-      details: error.message
+      details: error.message,
+      errorType: error.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 } 
