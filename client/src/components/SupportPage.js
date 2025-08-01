@@ -95,21 +95,30 @@ const SupportPage = ({ user }) => {
           })
         });
 
+        // eslint-disable-next-line no-console
+        console.log('📡 API Response status:', response.status);
+        console.log('📡 API Response ok:', response.ok);
+
         const result = await response.json();
         
-        if (result.success) {
+        // eslint-disable-next-line no-console
+        console.log('📡 API Response body:', result);
+        
+        if (response.ok && result.success) {
           // eslint-disable-next-line no-console
-          console.log('✅ Conversation history replayed:', result.conversationId);
-          console.log('📊 Messages replayed:', result.messagesReplayed);
+          console.log('✅ Conversation history replayed successfully');
+          console.log('🆔 Conversation ID:', result.conversationId);
           return result;
         } else {
           // eslint-disable-next-line no-console
-          console.error('❌ Failed to replay conversation:', result);
-          throw new Error(result.error || 'Failed to replay conversation');
+          console.error('❌ API returned error response:', result);
+          throw new Error(result.error || result.message || `API returned ${response.status}`);
         }
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Error replaying conversation:', error);
+        console.error('❌ Error in replayConversationHistory:', error);
+        // eslint-disable-next-line no-console
+        console.error('❌ Error details:', error.message);
         throw error;
       }
     };
@@ -236,6 +245,11 @@ const SupportPage = ({ user }) => {
               console.log('🌞 Sunshine conversation created:', replayResult.conversationId);
               setTicketCreated(true);
               setTicketId(replayResult.conversationId);
+            } else {
+              // eslint-disable-next-line no-console
+              console.log('ℹ️ No Sunshine conversation created - using basic widget');
+              setTicketCreated(false);
+              setTicketId(null);
             }
             
             // Open widget with a single, reliable attempt
@@ -307,10 +321,17 @@ const SupportPage = ({ user }) => {
         } catch (error) {
           // eslint-disable-next-line no-console
           console.error('❌ Failed to replay conversation in Sunshine Conversations:', error);
-          throw new Error(`Sunshine Conversations replay failed: ${error.message}`);
+          
+          // Continue with widget initialization even if API fails
+          // but set replayResult to null and log the error
+          replayResult = null;
+          
+          // Show user a warning but don't prevent widget from loading
+          // eslint-disable-next-line no-console
+          console.warn('⚠️ Continuing with basic widget setup due to API failure');
         }
         
-        // Initialize Zendesk widget
+        // Initialize Zendesk widget (works with or without replayResult)
         initializeZendeskWidget(conversationHistory, replayResult);
         
       } catch (error) {
