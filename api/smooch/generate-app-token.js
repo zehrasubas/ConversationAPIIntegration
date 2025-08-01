@@ -33,13 +33,12 @@ export default async function handler(req, res) {
     const authString = `${keyId}:${secret}`;
     const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
     
-    // Try different possible endpoint formats - focus on Zendesk integrated endpoints
+    // Try different possible endpoint formats - focus on correct Zendesk Sunshine Conversations paths
     const possibleUrls = [
-      `https://omniprototype.zendesk.com/api/v2/channels/conversations/apps/${appId}/keys`,
-      `https://omniprototype.zendesk.com/api/v2/channels/conversations/apps/${appId}/appKeys`,
-      `https://omniprototype.zendesk.com/api/v2/sunshine/conversations/apps/${appId}/keys`,
-      `https://omniprototype.zendesk.com/api/v2/sunshine/conversations/apps/${appId}/appKeys`,
-      `https://omniprototype.zendesk.com/api/v1/channels/conversations/apps/${appId}/keys`,
+      `https://omniprototype.zendesk.com/sc/v2/apps/${appId}/keys`,
+      `https://omniprototype.zendesk.com/sc/v2/apps/${appId}/appKeys`,
+      `https://omniprototype.zendesk.com/sc/v1/apps/${appId}/keys`,
+      `https://omniprototype.zendesk.com/sc/v1/apps/${appId}/appKeys`,
       // Fallback to original endpoints just in case
       `https://api.smooch.io/v2/apps/${appId}/appKeys`,
       `https://api.zendesk.com/sunshine/conversations/v2/apps/${appId}/appKeys`
