@@ -183,6 +183,9 @@ const SupportPage = () => {
             const response = await fetch(`/api/zendesk/get-conversation-history?psid=${encodeURIComponent(userId)}`);
             
             if (!response.ok) {
+              if (response.status === 404) {
+                throw new Error('No conversation history found - user must start a chat first');
+              }
               throw new Error(`Sunshine API error: ${response.status} ${response.statusText}`);
             }
 

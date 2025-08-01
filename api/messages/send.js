@@ -85,33 +85,40 @@ export default async function handler(req, res) {
     const storedMessage = messageStore.addMessage(userId, userMessage);
     console.log('💾 User message stored:', storedMessage);
 
-    // Create or update Sunshine conversation for this user - REQUIRED, NO FALLBACKS
+    // Create or update Sunshine conversation - TRY but don't fail message sending if it fails
     console.log('🌞 Processing Sunshine conversation for website user:', userId);
     
-    // Get or create Sunshine conversation for this website user
-    const conversationInfo = await sunshineStore.getOrCreateConversation(
-      userId, 
-      message
-    );
-    
-    if (conversationInfo.isNew) {
-      console.log('✨ Created new Sunshine conversation for website user:', conversationInfo.conversationId);
-      console.log('👤 Sunshine user ID:', conversationInfo.userId);
-    } else {
-      console.log('📝 Using existing Sunshine conversation:', conversationInfo.conversationId);
-      
-      // Add message to existing conversation
-      const messageAdded = await sunshineStore.addMessageToConversation(
-        userId,
-        message,
-        'user' // Message from website user
+    try {
+      // Get or create Sunshine conversation for this website user
+      const conversationInfo = await sunshineStore.getOrCreateConversation(
+        userId, 
+        message
       );
       
-      if (!messageAdded) {
-        throw new Error('Failed to add website message to Sunshine conversation');
+      if (conversationInfo.isNew) {
+        console.log('✨ Created new Sunshine conversation for website user:', conversationInfo.conversationId);
+        console.log('👤 Sunshine user ID:', conversationInfo.userId);
+      } else {
+        console.log('📝 Using existing Sunshine conversation:', conversationInfo.conversationId);
+        
+        // Add message to existing conversation
+        const messageAdded = await sunshineStore.addMessageToConversation(
+          userId,
+          message,
+          'user' // Message from website user
+        );
+        
+        if (!messageAdded) {
+          console.warn('⚠️ Failed to add website message to existing Sunshine conversation');
+        } else {
+          console.log('✅ Added website message to Sunshine conversation');
+        }
       }
-      
-      console.log('✅ Added website message to Sunshine conversation');
+    } catch (sunshineError) {
+      console.error('❌ Error processing Sunshine conversation for website user:', sunshineError);
+      console.error('❌ Sunshine error details:', sunshineError.message);
+      console.log('🔄 Continuing message processing despite Sunshine failure');
+      // Continue processing - don't let Sunshine failures break the main chat
     }
 
     // Check if Messenger Platform is configured

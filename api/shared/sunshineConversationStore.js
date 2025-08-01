@@ -42,11 +42,36 @@ class SunshineConversationStore {
       const userExternalId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       console.log('🔐 Using anonymous external ID:', userExternalId);
 
-      // Create conversation with userExternalId directly (auto-creates anonymous user)
+      // Step 1: Create the user first with external ID
+      const userResponse = await fetch(`${sunshineApiUrl}/users`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          externalId: userExternalId,
+          profile: {
+            givenName: 'Anonymous',
+            surname: 'User'
+          }
+        })
+      });
+
+      if (!userResponse.ok) {
+        const errorData = await userResponse.text();
+        throw new Error(`Failed to create Sunshine user: ${userResponse.status} - ${errorData}`);
+      }
+
+      const userData = await userResponse.json();
+      const sunshineUserId = userData.user.id;
+      console.log('✅ Created anonymous Sunshine user:', sunshineUserId);
+
+      // Step 2: Create conversation using the user ID
       const conversationPayload = {
         type: 'personal',
         participants: [{
-          userExternalId: userExternalId
+          userId: sunshineUserId
         }]
       };
 
@@ -76,16 +101,17 @@ class SunshineConversationStore {
       const conversationId = conversationData.conversation.id;
       console.log('✅ Created anonymous Sunshine conversation:', conversationId);
 
-      // Store the mapping (using external ID, not internal user ID)
+      // Store the mapping (using external ID for anonymity)
       const conversationInfo = {
         conversationId,
+        userId: sunshineUserId,
         userExternalId,
         facebookPSID,
         createdAt: new Date().toISOString()
       };
 
       this.conversationMap.set(facebookPSID, conversationInfo);
-      this.userMap.set(facebookPSID, userExternalId); // Store external ID, not internal ID
+      this.userMap.set(facebookPSID, userExternalId); // Store external ID for anonymity
 
       console.log('💾 Stored anonymous conversation mapping:', conversationInfo);
       return { ...conversationInfo, isNew: true };
