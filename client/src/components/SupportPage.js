@@ -87,16 +87,44 @@ const SupportPage = () => {
       // eslint-disable-next-line no-console
       console.log('🚀 Initializing Smooch SDK widget...');
       
-      const initializeSmooch = () => {
+      const initializeSmooch = async () => {
         try {
           // eslint-disable-next-line no-console
-          console.log('🔧 Initializing Smooch with App ID: 66fe310b1f5b6f0929cb3051');
+          console.log('🔧 Getting app token for Smooch initialization...');
           
-          window.Smooch.init({
-            appId: '66fe310b1f5b6f0929cb3051' // Your App ID from screenshot
-          }).then(() => {
+          // First, get app token from our API
+          const tokenResponse = await fetch('/api/smooch/generate-app-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!tokenResponse.ok) {
+            throw new Error(`Failed to get app token: ${tokenResponse.status}`);
+          }
+
+          const tokenData = await tokenResponse.json();
+          if (!tokenData.success || !tokenData.appToken) {
+            throw new Error('No app token received from API');
+          }
+
+          // eslint-disable-next-line no-console
+          console.log('✅ App token received, initializing Smooch...');
+          console.log('🔧 App ID:', tokenData.appId);
+          console.log('🔧 Token ID:', tokenData.tokenId);
+
+          // Initialize Smooch with app token
+          const smoochConfig = {
+            appToken: tokenData.appToken
+          };
+
+          // eslint-disable-next-line no-console
+          console.log('🔧 Initializing Smooch with app token...');
+
+          window.Smooch.init(smoochConfig).then(() => {
             // eslint-disable-next-line no-console
-            console.log('✅ Smooch widget initialized');
+            console.log('✅ Smooch widget initialized with app token');
             
             // Get the external ID for this session
             const supportExternalId = sessionStorage.getItem('supportExternalId');
@@ -125,14 +153,14 @@ const SupportPage = () => {
             
           }).catch((error) => {
             // eslint-disable-next-line no-console
-            console.error('❌ Failed to initialize Smooch:', error);
+            console.error('❌ Failed to initialize Smooch widget:', error);
             setError('Failed to initialize support widget');
             setLoading(false);
           });
           
         } catch (error) {
           // eslint-disable-next-line no-console
-          console.error('❌ Error initializing Smooch:', error);
+          console.error('❌ Error getting app token or initializing Smooch:', error);
           setError('Failed to initialize support widget');
           setLoading(false);
         }
