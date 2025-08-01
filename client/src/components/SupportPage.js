@@ -7,6 +7,8 @@ const SupportPage = () => {
   // const [ticketId, setTicketId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userState, setUserState] = useState(null);
+  const [userLoggedIn, setUserLoggedIn] = useState(false);
 
   // Clear any previous widget sessions and prepare for fresh Smooch session
   useEffect(() => {
@@ -90,11 +92,8 @@ const SupportPage = () => {
       
       const initializeSmooch = async () => {
         try {
-          // eslint-disable-next-line no-console
-          console.log('🔧 Getting app token for Smooch initialization...');
-          
           // First, get app token from our API
-          const tokenResponse = await fetch('/api/test-smooch', {
+          const tokenResponse = await fetch('/api/smooch/generate-app-token', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -103,24 +102,18 @@ const SupportPage = () => {
 
           if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('❌ Test endpoint error response:', errorText);
-            throw new Error(`Failed to test endpoint: ${tokenResponse.status} - ${errorText}`);
+            console.error('❌ App token error response:', errorText);
+            throw new Error(`Failed to get app token: ${tokenResponse.status} - ${errorText}`);
           }
 
           const tokenData = await tokenResponse.json();
-          console.log('✅ Test endpoint response:', tokenData);
+          console.log('✅ App token received, initializing Smooch...');
           
-          // For now, just log the environment check and stop here
-          throw new Error('Test endpoint completed - stopping here for debugging');
-
-          // Commented out to avoid unreachable code error - all code below until catch block
-          /*
-          // if (!tokenData.success || !tokenData.appToken) {
-          //   throw new Error('No app token received from API');
-          // }
+          if (!tokenData.success || !tokenData.appToken) {
+            throw new Error('No app token received from API');
+          }
 
           // eslint-disable-next-line no-console
-          console.log('✅ App token received, initializing Smooch...');
           console.log('🔧 App ID:', tokenData.appId);
           console.log('🔧 Token ID:', tokenData.tokenId);
 
@@ -132,15 +125,16 @@ const SupportPage = () => {
           // eslint-disable-next-line no-console
           console.log('🔧 Initializing Smooch with config:', smoochConfig);
 
-          Smooch.init(smoochConfig).then(() => {
+          window.Smooch.init(smoochConfig).then(() => {
             // eslint-disable-next-line no-console
             console.log('✅ Smooch initialized successfully');
             
+            const supportExternalId = sessionStorage.getItem('supportExternalId');
             if (supportExternalId) {
               // eslint-disable-next-line no-console
               console.log('🔑 Logging in with external ID:', supportExternalId);
               
-              return Smooch.login(supportExternalId);
+              return window.Smooch.login(supportExternalId);
             } else {
               throw new Error('No external ID found for support page');
             }
@@ -162,7 +156,6 @@ const SupportPage = () => {
             setError('Failed to initialize support widget');
             setLoading(false);
           });
-          */
           
         } catch (error) {
           // eslint-disable-next-line no-console
