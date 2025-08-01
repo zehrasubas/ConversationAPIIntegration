@@ -2,8 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import './SupportPage.css';
 
 const SupportPage = () => {
-  const [ticketCreated, setTicketCreated] = useState(false);
-  const [ticketId, setTicketId] = useState(null);
+  // Temporarily commented out unused variables for debugging
+  // const [ticketCreated, setTicketCreated] = useState(false);
+  // const [ticketId, setTicketId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -326,13 +327,13 @@ const SupportPage = () => {
             ← Back to Website
           </button>
           <h1>Support Center</h1>
-          {ticketCreated && (
+          {/* ticketCreated && (
             <div className="ticket-info">
               <span className="ticket-created">
                 ✅ Ticket #{ticketId} created
               </span>
             </div>
-          )}
+          ) */}
         </div>
       </div>
       
@@ -355,12 +356,12 @@ const SupportPage = () => {
               </div>
               <h2>Connected to Support</h2>
               <p>Your support chat is ready! The widget should open automatically.</p>
-              {ticketCreated && ticketId && (
+              {/* ticketCreated && ticketId && (
                 <div className="ticket-info">
                   <i className="fas fa-ticket-alt"></i>
                   <span>Session: #{ticketId}</span>
                 </div>
-              )}
+              ) */}
             </div>
           </div>
         )}
