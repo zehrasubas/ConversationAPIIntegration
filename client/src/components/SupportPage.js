@@ -128,9 +128,56 @@ function SupportPage() {
     // eslint-disable-next-line no-console
     console.log('🚀 Initializing Smooch SDK widget...');
     
-    const initializeSmooch = async () => {
+    const tryDirectAppIdInit = () => {
+      // eslint-disable-next-line no-console
+      console.log('🔧 Trying direct App ID initialization (no token)...');
+      
+      const appId = '66fe310b1f5b6f0929cb3051'; // Your App ID
+      
+      // Try initializing Smooch without app token
+      return window.Smooch.init({
+        appId: appId
+        // No appToken - see if this works
+      }).then(() => {
+        // eslint-disable-next-line no-console
+        console.log('✅ Smooch initialized successfully with App ID only!');
+        
+        const supportExternalId = sessionStorage.getItem('supportExternalId');
+        if (supportExternalId) {
+          // eslint-disable-next-line no-console
+          console.log('🔑 Logging in with external ID:', supportExternalId);
+          
+          return window.Smooch.login(supportExternalId);
+        } else {
+          throw new Error('No external ID found for support page');
+        }
+      }).then(() => {
+        // eslint-disable-next-line no-console
+        console.log('✅ User logged in successfully');
+        
+        setError(null);
+        setLoading(false);
+        
+        // eslint-disable-next-line no-console
+        console.log('🎉 Support widget initialized successfully with App ID only!');
+        
+      }).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.log('❌ App ID only initialization failed:', error.message);
+        // eslint-disable-next-line no-console
+        console.log('🔄 Falling back to token-based authentication...');
+        
+        // Fallback to token-based authentication
+        return tryTokenBasedInit();
+      });
+    };
+    
+    const tryTokenBasedInit = async () => {
       try {
-        // First, get app token from our API
+        // eslint-disable-next-line no-console
+        console.log('🔧 Trying token-based initialization...');
+        
+        // Get app token from our API
         const tokenResponse = await fetch('/api/smooch/generate-app-token', {
           method: 'POST',
           headers: {
@@ -175,9 +222,9 @@ function SupportPage() {
         // eslint-disable-next-line no-console
         console.log('🔧 Initializing Smooch with config:', smoochConfig);
 
-        window.Smooch.init(smoochConfig).then(() => {
+        return window.Smooch.init(smoochConfig).then(() => {
           // eslint-disable-next-line no-console
-          console.log('✅ Smooch initialized successfully');
+          console.log('✅ Smooch initialized successfully with token!');
           
           const supportExternalId = sessionStorage.getItem('supportExternalId');
           if (supportExternalId) {
@@ -193,22 +240,17 @@ function SupportPage() {
           console.log('✅ User logged in successfully');
           
           setError(null);
-          setLoading(false); // This resolves the ESLint warning
-          
-          // eslint-disable-next-line no-console
-          console.log('🎉 Support widget initialized successfully');
-          
-        }).catch((error) => {
-          // eslint-disable-next-line no-console
-          console.error('❌ Failed to initialize Smooch widget:', error);
-          setError('Failed to initialize support widget');
           setLoading(false);
+          
+          // eslint-disable-next-line no-console
+          console.log('🎉 Support widget initialized successfully with token!');
+          
         });
         
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Error getting app token or initializing Smooch:', error);
-        setError('Failed to initialize support widget');
+        console.error('❌ Token-based initialization also failed:', error);
+        setError('Failed to initialize support widget - both App ID and token methods failed');
         setLoading(false);
       }
     };
@@ -222,7 +264,7 @@ function SupportPage() {
       script.onload = () => {
         // eslint-disable-next-line no-console
         console.log('✅ Smooch SDK script loaded');
-        initializeSmooch();
+        tryDirectAppIdInit();
       };
       
       script.onerror = () => {
@@ -235,8 +277,8 @@ function SupportPage() {
       document.head.appendChild(script);
     } else {
       // eslint-disable-next-line no-console
-      console.log('✅ Smooch SDK already loaded, initializing...');
-      initializeSmooch();
+      console.log('✅ Smooch SDK already loaded, trying direct App ID initialization...');
+      tryDirectAppIdInit();
     }
   };
 
