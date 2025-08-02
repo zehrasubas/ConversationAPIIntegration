@@ -140,15 +140,27 @@ function SupportPage() {
 
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text();
+          // eslint-disable-next-line no-console
           console.error('❌ App token error response:', errorText);
+          console.error('❌ Response status:', tokenResponse.status);
+          console.error('❌ Response headers:', Object.fromEntries(tokenResponse.headers.entries()));
           throw new Error(`Failed to get app token: ${tokenResponse.status} - ${errorText}`);
         }
 
         const tokenData = await tokenResponse.json();
+        // eslint-disable-next-line no-console
+        console.log('📋 Full API response:', tokenData);
         console.log('✅ App token received, initializing Smooch...');
         
         if (!tokenData.success || !tokenData.appToken) {
-          throw new Error('No app token received from API');
+          // eslint-disable-next-line no-console
+          console.error('❌ Invalid API response structure:', {
+            hasSuccess: !!tokenData.success,
+            successValue: tokenData.success,
+            hasAppToken: !!tokenData.appToken,
+            tokenDataKeys: Object.keys(tokenData)
+          });
+          throw new Error(`No app token received from API. Response: ${JSON.stringify(tokenData)}`);
         }
 
         // eslint-disable-next-line no-console
