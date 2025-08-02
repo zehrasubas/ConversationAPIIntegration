@@ -134,42 +134,52 @@ function SupportPage() {
       
       const appId = '66fe310b1f5b6f0929cb3051'; // Your App ID
       
-      // Try initializing Smooch without app token
-      return window.Smooch.init({
-        appId: appId
-        // No appToken - see if this works
-      }).then(() => {
-        // eslint-disable-next-line no-console
-        console.log('✅ Smooch initialized successfully with App ID only!');
-        
-        const supportExternalId = sessionStorage.getItem('supportExternalId');
-        if (supportExternalId) {
+      try {
+        // Try initializing Smooch without app token
+        return window.Smooch.init({
+          appId: appId
+          // No appToken - see if this works
+        }).then(() => {
           // eslint-disable-next-line no-console
-          console.log('🔑 Logging in with external ID:', supportExternalId);
+          console.log('✅ Smooch initialized successfully with App ID only!');
           
-          return window.Smooch.login(supportExternalId);
-        } else {
-          throw new Error('No external ID found for support page');
-        }
-      }).then(() => {
+          const supportExternalId = sessionStorage.getItem('supportExternalId');
+          if (supportExternalId) {
+            // eslint-disable-next-line no-console
+            console.log('🔑 Logging in with external ID:', supportExternalId);
+            
+            return window.Smooch.login(supportExternalId);
+          } else {
+            throw new Error('No external ID found for support page');
+          }
+        }).then(() => {
+          // eslint-disable-next-line no-console
+          console.log('✅ User logged in successfully');
+          
+          setError(null);
+          setLoading(false);
+          
+          // eslint-disable-next-line no-console
+          console.log('🎉 Support widget initialized successfully with App ID only!');
+          
+        }).catch((error) => {
+          // eslint-disable-next-line no-console
+          console.log('❌ App ID only initialization failed:', error.message);
+          // eslint-disable-next-line no-console
+          console.log('🔄 Falling back to token-based authentication...');
+          
+          // Fallback to token-based authentication
+          return tryTokenBasedInit();
+        });
+      } catch (error) {
         // eslint-disable-next-line no-console
-        console.log('✅ User logged in successfully');
-        
-        setError(null);
-        setLoading(false);
-        
-        // eslint-disable-next-line no-console
-        console.log('🎉 Support widget initialized successfully with App ID only!');
-        
-      }).catch((error) => {
-        // eslint-disable-next-line no-console
-        console.log('❌ App ID only initialization failed:', error.message);
+        console.log('❌ App ID initialization threw immediate error:', error.message);
         // eslint-disable-next-line no-console
         console.log('🔄 Falling back to token-based authentication...');
         
         // Fallback to token-based authentication
         return tryTokenBasedInit();
-      });
+      }
     };
     
     const tryTokenBasedInit = async () => {
