@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
       // Test 2: Try to create app key for token generation
       // Following the pattern from documentation
-      const keyUrl = `https://startup3297.zendesk.com/sc/v2/apps/${appId}/keys`;
+      const keyUrl = `https://startup3297.zendesk.com/sc/v2/apps/${appId}/appKeys`;
       console.log('🔧 Now testing app key creation at:', keyUrl);
 
       const keyResponse = await fetch(keyUrl, {
@@ -94,28 +94,73 @@ export default async function handler(req, res) {
         });
       } else {
         const keyErrorData = await keyResponse.text();
-        console.log('❌ Key creation failed:', keyResponse.status, keyErrorData);
-        console.log('❌ Key creation headers:', Object.fromEntries(keyResponse.headers.entries()));
+        console.log('❌ Key creation failed with appKeys endpoint:', keyResponse.status, keyErrorData);
         
-        // Try to parse error as JSON for better details
-        try {
-          const errorJson = JSON.parse(keyErrorData);
-          console.log('❌ Parsed error details:', errorJson);
-        } catch (e) {
-          console.log('❌ Raw error text:', keyErrorData);
-        }
+        // Try fallback with original keys endpoint
+        const fallbackUrl = `https://startup3297.zendesk.com/sc/v2/apps/${appId}/keys`;
+        console.log('🔧 Trying fallback URL:', fallbackUrl);
         
-        // Still success for basic auth, but couldn't create key
-        res.status(200).json({
-          success: true,
-          message: 'Basic authentication working, but key creation failed',
-          appInfo: result.app,
-          appId: appId,
-          keyCreationError: {
-            status: keyResponse.status,
-            error: keyErrorData
-          }
+        const fallbackResponse = await fetch(fallbackUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            displayName: 'Web Widget Token'
+          })
         });
+
+        console.log('📥 Fallback response status:', fallbackResponse.status);
+
+        if (fallbackResponse.ok) {
+          const fallbackResult = await fallbackResponse.json();
+          console.log('✅ App key created with fallback endpoint!');
+          
+          res.status(200).json({
+            success: true,
+            message: 'Basic authentication working with fallback!',
+            appInfo: result.app,
+            appToken: fallbackResult.key?.secret,
+            tokenId: fallbackResult.key?.id,
+            appId: appId,
+            usedFallback: true
+          });
+        } else {
+          const fallbackErrorData = await fallbackResponse.text();
+          console.log('❌ Fallback also failed:', fallbackResponse.status, fallbackErrorData);
+          
+          // Parse both errors for detailed logging
+          let parsedErrors = {};
+          try {
+            parsedErrors.appKeys = JSON.parse(keyErrorData);
+          } catch (e) { parsedErrors.appKeys = keyErrorData; }
+          
+          try {
+            parsedErrors.keys = JSON.parse(fallbackErrorData);
+          } catch (e) { parsedErrors.keys = fallbackErrorData; }
+          
+          console.log('❌ All parsed errors:', parsedErrors);
+          
+          // Still success for basic auth, but couldn't create key
+          res.status(200).json({
+            success: true,
+            message: 'Basic authentication working, but both key creation endpoints failed',
+            appInfo: result.app,
+            appId: appId,
+            keyCreationError: {
+              appKeysEndpoint: {
+                status: keyResponse.status,
+                error: keyErrorData
+              },
+              keysEndpoint: {
+                status: fallbackResponse.status,
+                error: fallbackErrorData
+              },
+              parsedErrors: parsedErrors
+            }
+          });
+        }
       }
     } else {
       const errorData = await response.text();
