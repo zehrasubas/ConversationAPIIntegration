@@ -73,8 +73,8 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          displayName: 'Web Widget Token',
-          scope: 'app'  // Following documentation for app-scoped keys
+          displayName: 'Web Widget Token'
+          // Scope is determined automatically by the API key with basic auth
         })
       });
 
@@ -95,6 +95,15 @@ export default async function handler(req, res) {
       } else {
         const keyErrorData = await keyResponse.text();
         console.log('❌ Key creation failed:', keyResponse.status, keyErrorData);
+        console.log('❌ Key creation headers:', Object.fromEntries(keyResponse.headers.entries()));
+        
+        // Try to parse error as JSON for better details
+        try {
+          const errorJson = JSON.parse(keyErrorData);
+          console.log('❌ Parsed error details:', errorJson);
+        } catch (e) {
+          console.log('❌ Raw error text:', keyErrorData);
+        }
         
         // Still success for basic auth, but couldn't create key
         res.status(200).json({
