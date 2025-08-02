@@ -156,17 +156,56 @@ function SupportPage() {
         console.log('✅ Web integration created successfully!');
         console.log('🔧 Integration ID:', integrationData.integrationId);
 
-        // Step 2: Initialize Smooch with integration ID
+        // Step 2: Get JWT for anonymous user
+        const supportExternalId = sessionStorage.getItem('supportExternalId');
+        if (!supportExternalId) {
+          throw new Error('No external ID found for JWT generation');
+        }
+
+        // eslint-disable-next-line no-console
+        console.log('🔧 Generating JWT for anonymous user...');
+
+        const jwtResponse = await fetch('/api/smooch/generate-jwt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            externalId: supportExternalId
+          })
+        });
+
+        if (!jwtResponse.ok) {
+          const errorText = await jwtResponse.text();
+          throw new Error(`Failed to get JWT: ${jwtResponse.status} - ${errorText}`);
+        }
+
+        const jwtData = await jwtResponse.json();
+        
+        if (!jwtData.success || !jwtData.jwt) {
+          throw new Error('No JWT received from API');
+        }
+
+        // eslint-disable-next-line no-console
+        console.log('✅ JWT generated successfully!');
+
+        // Step 3: Initialize Smooch with BOTH integration ID and JWT
         const smoochConfig = {
-          integrationId: integrationData.integrationId
+          integrationId: integrationData.integrationId,
+          jwt: jwtData.jwt  // For anonymous users
         };
 
         // eslint-disable-next-line no-console
-        console.log('🔧 Initializing Smooch with integration ID...');
+        console.log('🔧 Initializing Smooch with integration ID + JWT...');
+        console.log('🔧 Config:', {
+          hasIntegrationId: !!smoochConfig.integrationId,
+          hasJWT: !!smoochConfig.jwt,
+          jwtLength: smoochConfig.jwt.length
+        });
 
         return window.Smooch.init(smoochConfig).then(() => {
           // eslint-disable-next-line no-console
-          console.log('✅ Smooch initialized successfully with integration ID!');
+          console.log('✅ Smooch initialized successfully with integration ID + JWT!');
           
           setError(null);
           setLoading(false);
@@ -178,8 +217,8 @@ function SupportPage() {
         
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Integration-based initialization failed:', error);
-        setError('Failed to initialize support widget - web integration approach failed');
+        console.error('❌ Integration + JWT initialization failed:', error);
+        setError('Failed to initialize support widget - integration + JWT approach failed');
         setLoading(false);
       }
     };
