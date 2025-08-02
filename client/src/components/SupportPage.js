@@ -207,60 +207,122 @@ function SupportPage() {
         const tokenData = await tokenResponse.json();
         // eslint-disable-next-line no-console
         console.log('📋 Full API response:', tokenData);
-        console.log('✅ App token received, initializing Smooch...');
         
-        if (!tokenData.success || !tokenData.appToken) {
+        if (tokenData.success && tokenData.appToken) {
           // eslint-disable-next-line no-console
-          console.error('❌ Invalid API response structure:', {
-            hasSuccess: !!tokenData.success,
-            successValue: tokenData.success,
-            hasAppToken: !!tokenData.appToken,
-            tokenDataKeys: Object.keys(tokenData)
+          console.log('✅ App token received, initializing Smooch...');
+          
+          // eslint-disable-next-line no-console
+          console.log('🔧 App ID:', tokenData.appId);
+          console.log('🔧 Token ID:', tokenData.tokenId);
+
+          // Initialize Smooch with app token
+          const smoochConfig = {
+            appToken: tokenData.appToken
+          };
+
+          // eslint-disable-next-line no-console
+          console.log('🔧 Initializing Smooch with app token...');
+
+          return window.Smooch.init(smoochConfig).then(() => {
+            // eslint-disable-next-line no-console
+            console.log('✅ Smooch initialized successfully with token!');
+            
+            const supportExternalId = sessionStorage.getItem('supportExternalId');
+            if (supportExternalId) {
+              // eslint-disable-next-line no-console
+              console.log('🔑 Logging in with external ID:', supportExternalId);
+              
+              return window.Smooch.login(supportExternalId);
+            } else {
+              throw new Error('No external ID found for support page');
+            }
+          }).then(() => {
+            // eslint-disable-next-line no-console
+            console.log('✅ User logged in successfully');
+            
+            setError(null);
+            setLoading(false);
+            
+            // eslint-disable-next-line no-console
+            console.log('🎉 Support widget initialized successfully with token!');
+            
           });
-          throw new Error(`No app token received from API. Response: ${JSON.stringify(tokenData)}`);
+        } else {
+          // eslint-disable-next-line no-console
+          console.log('❌ No app token in response, trying JWT approach...');
+          return tryJWTInit();
+        }
+        
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('❌ Token-based initialization failed:', error);
+        console.log('🔄 Trying JWT-based authentication...');
+        return tryJWTInit();
+      }
+    };
+
+    const tryJWTInit = async () => {
+      try {
+        // eslint-disable-next-line no-console
+        console.log('🔧 Trying JWT-based initialization...');
+        
+        // Generate JWT on the client side for user scope
+        const supportExternalId = sessionStorage.getItem('supportExternalId');
+        if (!supportExternalId) {
+          throw new Error('No external ID found for JWT generation');
+        }
+
+        // Get JWT from our API
+        const jwtResponse = await fetch('/api/smooch/generate-jwt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            externalId: supportExternalId
+          })
+        });
+
+        if (!jwtResponse.ok) {
+          const errorText = await jwtResponse.text();
+          throw new Error(`Failed to get JWT: ${jwtResponse.status} - ${errorText}`);
+        }
+
+        const jwtData = await jwtResponse.json();
+        
+        if (!jwtData.success || !jwtData.jwt) {
+          throw new Error('No JWT received from API');
         }
 
         // eslint-disable-next-line no-console
-        console.log('🔧 App ID:', tokenData.appId);
-        console.log('🔧 Token ID:', tokenData.tokenId);
+        console.log('✅ JWT received, initializing Smooch...');
 
-        // Initialize Smooch with app token
+        // Initialize Smooch with JWT
         const smoochConfig = {
-          appToken: tokenData.appToken
+          appId: '66fe310b1f5b6f0929cb3051',
+          jwt: jwtData.jwt
         };
 
         // eslint-disable-next-line no-console
-        console.log('🔧 Initializing Smooch with config:', smoochConfig);
+        console.log('🔧 Initializing Smooch with JWT...');
 
         return window.Smooch.init(smoochConfig).then(() => {
           // eslint-disable-next-line no-console
-          console.log('✅ Smooch initialized successfully with token!');
-          
-          const supportExternalId = sessionStorage.getItem('supportExternalId');
-          if (supportExternalId) {
-            // eslint-disable-next-line no-console
-            console.log('🔑 Logging in with external ID:', supportExternalId);
-            
-            return window.Smooch.login(supportExternalId);
-          } else {
-            throw new Error('No external ID found for support page');
-          }
-        }).then(() => {
-          // eslint-disable-next-line no-console
-          console.log('✅ User logged in successfully');
+          console.log('✅ Smooch initialized successfully with JWT!');
           
           setError(null);
           setLoading(false);
           
           // eslint-disable-next-line no-console
-          console.log('🎉 Support widget initialized successfully with token!');
+          console.log('🎉 Support widget initialized successfully with JWT!');
           
         });
         
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Token-based initialization also failed:', error);
-        setError('Failed to initialize support widget - both App ID and token methods failed');
+        console.error('❌ JWT-based initialization also failed:', error);
+        setError('Failed to initialize support widget - App ID, token, and JWT methods all failed');
         setLoading(false);
       }
     };
