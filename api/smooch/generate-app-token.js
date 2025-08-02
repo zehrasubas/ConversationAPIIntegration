@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
     // Test 1: Simple API connectivity test - GET app info
     // Following documentation format: https://{subdomain}.zendesk.com/sc/v2/apps/{app_id}
-    const testUrl = `https://omniprototype.zendesk.com/sc/v2/apps/${appId}`;
+    const testUrl = `https://startup3297.zendesk.com/sc/v2/apps/${appId}`;
     
     console.log('🔧 Testing basic auth with URL:', testUrl);
 
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
       // Test 2: Try to create app key for token generation
       // Following the pattern from documentation
-      const keyUrl = `https://omniprototype.zendesk.com/sc/v2/apps/${appId}/keys`;
+      const keyUrl = `https://startup3297.zendesk.com/sc/v2/apps/${appId}/keys`;
       console.log('🔧 Now testing app key creation at:', keyUrl);
 
       const keyResponse = await fetch(keyUrl, {
