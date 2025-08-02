@@ -1,8 +1,8 @@
-// Generate App Token for Smooch SDK authentication
+// Test Basic Authentication for Sunshine Conversations API
 const fetch = require('node-fetch');
 
 export default async function handler(req, res) {
-  console.log('🔑 App token generation request received');
+  console.log('🔑 Testing basic authentication with Sunshine Conversations API');
   console.log('📥 Request method:', req.method);
 
   if (req.method !== 'POST') {
@@ -27,88 +27,98 @@ export default async function handler(req, res) {
       throw new Error('Missing Sunshine Conversations credentials');
     }
 
-    console.log('🔧 Generating app token for App ID:', appId);
-    console.log('🔧 Using Key ID:', keyId);
-
+    // Create basic authentication header exactly as documented
+    // Authorization: Basic base64("{key_id}:{key_secret}")
     const authString = `${keyId}:${secret}`;
     const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
     
-    // Try different possible endpoint formats - focus on correct Zendesk Sunshine Conversations paths
-    const possibleUrls = [
-      `https://omniprototype.zendesk.com/sc/v2/apps/${appId}/keys`,
-      `https://omniprototype.zendesk.com/sc/v2/apps/${appId}/appKeys`,
-      `https://omniprototype.zendesk.com/sc/v1/apps/${appId}/keys`,
-      `https://omniprototype.zendesk.com/sc/v1/apps/${appId}/appKeys`,
-      // Fallback to original endpoints just in case
-      `https://api.smooch.io/v2/apps/${appId}/appKeys`,
-      `https://api.zendesk.com/sunshine/conversations/v2/apps/${appId}/appKeys`
-    ];
+    console.log('🔧 Auth string format:', `${keyId}:****`);
+    console.log('🔧 Auth header (first 30 chars):', authHeader.substring(0, 30) + '...');
 
-    let lastError = null;
+    // Test 1: Simple API connectivity test - GET app info
+    // Following documentation format: https://{subdomain}.zendesk.com/sc/v2/apps/{app_id}
+    const testUrl = `https://omniprototype.zendesk.com/sc/v2/apps/${appId}`;
     
-    for (const apiUrl of possibleUrls) {
-      console.log('🔧 Trying URL:', apiUrl);
-      console.log('🔧 Auth header (first 20 chars):', authHeader.substring(0, 20) + '...');
+    console.log('🔧 Testing basic auth with URL:', testUrl);
 
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            displayName: 'Web Widget Token'
-          })
-        });
-
-        console.log('📥 Smooch API response status:', response.status);
-        console.log('📥 Smooch API response headers:', Object.fromEntries(response.headers.entries()));
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('✅ App Token created successfully with URL:', apiUrl);
-          console.log('📝 Token info:', {
-            id: result.key.id,
-            displayName: result.key.displayName,
-            hasSecret: !!result.key.secret
-          });
-
-          res.status(200).json({
-            success: true,
-            appToken: result.key.secret,
-            tokenId: result.key.id,
-            displayName: result.key.displayName,
-            appId: appId,
-            usedUrl: apiUrl
-          });
-          return;
-        } else {
-          const errorData = await response.text();
-          lastError = {
-            url: apiUrl,
-            status: response.status,
-            error: errorData
-          };
-          console.log(`❌ Failed with ${apiUrl}: ${response.status} - ${errorData}`);
-        }
-      } catch (error) {
-        lastError = {
-          url: apiUrl,
-          error: error.message
-        };
-        console.log(`❌ Request failed for ${apiUrl}:`, error.message);
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
       }
+    });
+
+    console.log('📥 API response status:', response.status);
+    console.log('📥 API response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Basic authentication successful!');
+      console.log('📝 App info received:', {
+        id: result.app?.id,
+        name: result.app?.name,
+        hasSettings: !!result.app?.settings
+      });
+
+      // Test 2: Try to create app key for token generation
+      // Following the pattern from documentation
+      const keyUrl = `https://omniprototype.zendesk.com/sc/v2/apps/${appId}/keys`;
+      console.log('🔧 Now testing app key creation at:', keyUrl);
+
+      const keyResponse = await fetch(keyUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          displayName: 'Web Widget Token',
+          scope: 'app'  // Following documentation for app-scoped keys
+        })
+      });
+
+      console.log('📥 Key creation response status:', keyResponse.status);
+
+      if (keyResponse.ok) {
+        const keyResult = await keyResponse.json();
+        console.log('✅ App key created successfully!');
+        
+        res.status(200).json({
+          success: true,
+          message: 'Basic authentication working!',
+          appInfo: result.app,
+          appToken: keyResult.key?.secret,
+          tokenId: keyResult.key?.id,
+          appId: appId
+        });
+      } else {
+        const keyErrorData = await keyResponse.text();
+        console.log('❌ Key creation failed:', keyResponse.status, keyErrorData);
+        
+        // Still success for basic auth, but couldn't create key
+        res.status(200).json({
+          success: true,
+          message: 'Basic authentication working, but key creation failed',
+          appInfo: result.app,
+          appId: appId,
+          keyCreationError: {
+            status: keyResponse.status,
+            error: keyErrorData
+          }
+        });
+      }
+    } else {
+      const errorData = await response.text();
+      console.log('❌ Basic authentication failed:', response.status, errorData);
+      
+      throw new Error(`Authentication failed: ${response.status} - ${errorData}`);
     }
 
-    // If we get here, none of the URLs worked
-    console.error('❌ All API endpoints failed. Last error:', lastError);
-    throw new Error(`All Smooch API endpoints failed. Last error: ${JSON.stringify(lastError)}`);
-
   } catch (error) {
-    console.error('❌ Error generating app token:', error);
+    console.error('❌ Error testing basic authentication:', error);
     res.status(500).json({
-      error: 'Failed to generate app token',
+      error: 'Basic authentication test failed',
       details: error.message
     });
   }
