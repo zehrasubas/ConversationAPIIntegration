@@ -156,56 +156,48 @@ function SupportPage() {
         console.log('✅ Web integration created successfully!');
         console.log('🔧 Integration ID:', integrationData.integrationId);
 
-        // Step 2: Get JWT for anonymous user
-        const supportExternalId = sessionStorage.getItem('supportExternalId');
-        if (!supportExternalId) {
-          throw new Error('No external ID found for JWT generation');
-        }
-
+        // Step 2: Get App Token for anonymous users (simpler than JWT)
         // eslint-disable-next-line no-console
-        console.log('🔧 Generating JWT for anonymous user...');
+        console.log('🔧 Getting app token for anonymous users...');
 
-        const jwtResponse = await fetch('/api/smooch/generate-jwt', {
+        const tokenResponse = await fetch('/api/smooch/generate-app-token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            externalId: supportExternalId
-          })
+          }
         });
 
-        if (!jwtResponse.ok) {
-          const errorText = await jwtResponse.text();
-          throw new Error(`Failed to get JWT: ${jwtResponse.status} - ${errorText}`);
+        if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text();
+          throw new Error(`Failed to get app token: ${tokenResponse.status} - ${errorText}`);
         }
 
-        const jwtData = await jwtResponse.json();
+        const tokenData = await tokenResponse.json();
         
-        if (!jwtData.success || !jwtData.jwt) {
-          throw new Error('No JWT received from API');
+        if (!tokenData.success || !tokenData.appToken) {
+          throw new Error(`No app token received. Response: ${JSON.stringify(tokenData)}`);
         }
 
         // eslint-disable-next-line no-console
-        console.log('✅ JWT generated successfully!');
+        console.log('✅ App token received successfully!');
 
-        // Step 3: Initialize Smooch with BOTH integration ID and JWT
+        // Step 3: Initialize Smooch with integration ID + App Token (for anonymous)
         const smoochConfig = {
           integrationId: integrationData.integrationId,
-          jwt: jwtData.jwt  // For anonymous users
+          appToken: tokenData.appToken  // For anonymous users - simpler than JWT
         };
 
         // eslint-disable-next-line no-console
-        console.log('🔧 Initializing Smooch with integration ID + JWT...');
+        console.log('🔧 Initializing Smooch with integration ID + App Token...');
         console.log('🔧 Config:', {
           hasIntegrationId: !!smoochConfig.integrationId,
-          hasJWT: !!smoochConfig.jwt,
-          jwtLength: smoochConfig.jwt.length
+          hasAppToken: !!smoochConfig.appToken,
+          appTokenLength: smoochConfig.appToken.length
         });
 
         return window.Smooch.init(smoochConfig).then(() => {
           // eslint-disable-next-line no-console
-          console.log('✅ Smooch initialized successfully with integration ID + JWT!');
+          console.log('✅ Smooch initialized successfully with integration ID + App Token!');
           
           setError(null);
           setLoading(false);
@@ -217,8 +209,8 @@ function SupportPage() {
         
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Integration + JWT initialization failed:', error);
-        setError('Failed to initialize support widget - integration + JWT approach failed');
+        console.error('❌ Integration + App Token initialization failed:', error);
+        setError('Failed to initialize support widget - integration + app token approach failed');
         setLoading(false);
       }
     };
