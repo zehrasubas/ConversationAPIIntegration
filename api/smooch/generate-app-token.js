@@ -61,8 +61,56 @@ export default async function handler(req, res) {
         hasSettings: !!result.app?.settings
       });
 
-      // Test 2: Try to create app key for token generation
-      // Following the pattern from documentation
+      // Test 2: Try original Smooch.io endpoints for key creation
+      // Maybe Zendesk subdomain endpoints don't support key creation
+      const smoochUrls = [
+        `https://api.smooch.io/v2/apps/${appId}/appKeys`,
+        `https://api.smooch.io/v2/apps/${appId}/keys`
+      ];
+
+      for (const keyUrl of smoochUrls) {
+        console.log('🔧 Trying Smooch.io endpoint:', keyUrl);
+
+        try {
+          const keyResponse = await fetch(keyUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              displayName: 'Web Widget Token'
+            })
+          });
+
+          console.log('📥 Smooch.io response status:', keyResponse.status);
+
+          if (keyResponse.ok) {
+            const keyResult = await keyResponse.json();
+            console.log('✅ App key created successfully with Smooch.io!');
+            
+            res.status(200).json({
+              success: true,
+              message: 'Token created with Smooch.io API!',
+              appInfo: result.app,
+              appToken: keyResult.key?.secret,
+              tokenId: keyResult.key?.id,
+              appId: appId,
+              usedEndpoint: keyUrl
+            });
+            return;
+          } else {
+            const errorData = await keyResponse.text();
+            console.log(`❌ Smooch.io endpoint failed (${keyUrl}):`, keyResponse.status, errorData);
+          }
+        } catch (error) {
+          console.log(`❌ Smooch.io request failed (${keyUrl}):`, error.message);
+        }
+      }
+
+      // If Smooch.io endpoints also fail, fall back to the original Zendesk approach
+      console.log('🔧 Smooch.io endpoints failed, trying Zendesk subdomain endpoints...');
+      
       const keyUrl = `https://startup3297.zendesk.com/sc/v2/apps/${appId}/appKeys`;
       console.log('🔧 Now testing app key creation at:', keyUrl);
 
@@ -90,7 +138,8 @@ export default async function handler(req, res) {
           appInfo: result.app,
           appToken: keyResult.key?.secret,
           tokenId: keyResult.key?.id,
-          appId: appId
+          appId: appId,
+          usedFallback: true
         });
       } else {
         const keyErrorData = await keyResponse.text();
