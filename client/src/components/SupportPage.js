@@ -301,9 +301,7 @@ function SupportPage() {
         // Initialize Smooch with JWT
         const smoochConfig = {
           appId: '66fe310b1f5b6f0929cb3051',
-          jwt: jwtData.jwt,
-          // Try to configure the correct API endpoint for Zendesk
-          serviceUrl: 'https://startup3297.zendesk.com/sc'
+          jwt: jwtData.jwt
         };
 
         // eslint-disable-next-line no-console
