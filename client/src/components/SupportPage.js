@@ -301,11 +301,18 @@ function SupportPage() {
         // Initialize Smooch with JWT
         const smoochConfig = {
           appId: '66fe310b1f5b6f0929cb3051',
-          jwt: jwtData.jwt
+          jwt: jwtData.jwt,
+          // Try to configure the correct API endpoint for Zendesk
+          serviceUrl: 'https://startup3297.zendesk.com/sc'
         };
 
         // eslint-disable-next-line no-console
         console.log('🔧 Initializing Smooch with JWT...');
+        console.log('🔧 JWT config:', {
+          appId: smoochConfig.appId,
+          jwtLength: smoochConfig.jwt.length,
+          jwtStart: smoochConfig.jwt.substring(0, 50) + '...'
+        });
 
         return window.Smooch.init(smoochConfig).then(() => {
           // eslint-disable-next-line no-console
@@ -317,6 +324,22 @@ function SupportPage() {
           // eslint-disable-next-line no-console
           console.log('🎉 Support widget initialized successfully with JWT!');
           
+        }).catch((smoochError) => {
+          // eslint-disable-next-line no-console
+          console.error('❌ Smooch JWT initialization failed:', smoochError);
+          console.error('❌ Error details:', {
+            message: smoochError.message,
+            stack: smoochError.stack,
+            name: smoochError.name
+          });
+          
+          // Try to provide more specific error information
+          if (smoochError.message.includes('fetch')) {
+            console.error('❌ This appears to be a network/CORS issue');
+            console.error('❌ The JWT was accepted but Smooch SDK cannot make internal API calls');
+          }
+          
+          throw smoochError;
         });
         
       } catch (error) {

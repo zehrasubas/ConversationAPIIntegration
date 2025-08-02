@@ -38,12 +38,15 @@ export default async function handler(req, res) {
     // Create JWT payload for user scope
     const payload = {
       scope: 'user',
-      external_id: externalId
+      external_id: externalId,
+      exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiration
     };
 
     // Create JWT header
     const header = {
-      kid: keyId
+      kid: keyId,
+      alg: 'HS256',
+      typ: 'JWT'
     };
 
     // Generate JWT
