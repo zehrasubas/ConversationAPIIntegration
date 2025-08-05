@@ -74,38 +74,15 @@ function SupportPage() {
     
     const createWebIntegrationAndInit = async () => {
       try {
-        // eslint-disable-next-line no-console
-        console.log('🔧 Creating web integration first...');
+        // Use hardcoded integration ID for anonymous conversations
+        const integrationId = '687975521a4fb14cfda56f88';
         
-        // Step 1: Create web integration
-        const integrationResponse = await fetch('/api/smooch/create-web-integration', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!integrationResponse.ok) {
-          const errorText = await integrationResponse.text();
-          throw new Error(`Failed to create web integration: ${integrationResponse.status} - ${errorText}`);
-        }
-
-        const integrationData = await integrationResponse.json();
-        
-        if (!integrationData.success || !integrationData.integrationId) {
-          throw new Error(`No integration ID received. Response: ${JSON.stringify(integrationData)}`);
-        }
-
         // eslint-disable-next-line no-console
-        console.log('✅ Web integration created successfully!');
-        console.log('🔧 Integration ID:', integrationData.integrationId);
-
-        // Step 2: Initialize Smooch with sessionStorage to continue anonymous conversation
-        // eslint-disable-next-line no-console
+        console.log('🔧 Using hardcoded integration ID:', integrationId);
         console.log('🔧 Initializing Smooch to continue anonymous conversation from main chat...');
 
         const smoochConfig = {
-          integrationId: integrationData.integrationId,
+          integrationId: integrationId,
           browserStorage: 'sessionStorage', // Same as ChatBox - will find existing anonymous user
           soundNotificationEnabled: true,
           embedded: false, // Full widget experience for support

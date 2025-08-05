@@ -13,7 +13,7 @@ const ChatBox = ({ user }) => {
 
   // Initialize Smooch SDK for anonymous conversations
   const initializeSmooch = useCallback(async () => {
-    if (smoochInitialized || window.Smooch) return;
+    if (smoochInitialized) return;
 
     try {
       // Load Smooch SDK script
@@ -29,25 +29,15 @@ const ChatBox = ({ user }) => {
         });
       }
 
-      // Get or create web integration
-      const integrationResponse = await fetch('/api/smooch/create-web-integration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!integrationResponse.ok) {
-        throw new Error('Failed to create web integration');
-      }
-
-      const integrationData = await integrationResponse.json();
+      // Use hardcoded integration ID for anonymous conversations
+      const integrationId = '687975521a4fb14cfda56f88';
       
-      if (!integrationData.success || !integrationData.integrationId) {
-        throw new Error('No integration ID received');
-      }
+      // eslint-disable-next-line no-console
+      console.log('🔧 Initializing Smooch with integration ID:', integrationId);
 
       // Initialize Smooch with browser storage for anonymous users
       await window.Smooch.init({
-        integrationId: integrationData.integrationId,
+        integrationId: integrationId,
         browserStorage: 'sessionStorage', // Persist during session, clear on browser close
         embedded: false, // Don't show the widget in main chat
         soundNotificationEnabled: false, // Disable sounds in main chat
