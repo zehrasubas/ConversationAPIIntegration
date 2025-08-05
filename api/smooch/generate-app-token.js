@@ -37,7 +37,8 @@ export default async function handler(req, res) {
 
     // Test 1: Simple API connectivity test - GET app info
     // Following documentation format: https://{subdomain}.zendesk.com/sc/v2/apps/{app_id}
-    const testUrl = `https://startup3297.zendesk.com/sc/v2/apps/${appId}`;
+    const subdomain = process.env.ZENDESK_SUBDOMAIN || 'your-subdomain';
+    const testUrl = `https://${subdomain}.zendesk.com/sc/v2/apps/${appId}`;
     
     console.log('🔧 Testing basic auth with URL:', testUrl);
 

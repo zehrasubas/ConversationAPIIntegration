@@ -11,6 +11,11 @@ export default async function handler(req, res) {
     const protocol = headers['x-forwarded-proto'] || 'https';
     const baseUrl = `${protocol}://${host}`;
 
+    // Get app IDs from environment variables
+    const loginAppId = process.env.FACEBOOK_LOGIN_APP_ID;
+    const messengerAppId = process.env.FACEBOOK_APP_ID;
+    const verifyToken = process.env.VERIFY_TOKEN;
+
     const debugInfo = {
       deploymentCheck: "DEPLOYMENT_TEST_2024_" + Date.now(),
       timestamp: new Date().toISOString(),
@@ -19,10 +24,10 @@ export default async function handler(req, res) {
       
       // Two-App Architecture
       facebookLogin: {
-        appId: '21102398933175',
+        appId: loginAppId || 'NOT_SET',
         purpose: 'Facebook Login only',
         currentScope: ['public_profile', 'email'],
-        status: 'Active for basic login',
+        status: loginAppId ? 'Active for basic login' : 'Missing APP ID',
         requiredSettings: {
           appDomains: [host],
           validOAuthRedirectURIs: [`${baseUrl}/`],
@@ -33,46 +38,47 @@ export default async function handler(req, res) {
       },
       
       messengerPlatform: {
-        appId: '30902396742455',
+        appId: messengerAppId || 'NOT_SET',
         purpose: 'Messenger Platform integration',
-        status: 'Setup required - add Messenger Product',
+        status: messengerAppId ? 'Setup required - add Messenger Product' : 'Missing APP ID',
         requiredSettings: {
           messengerProduct: 'Add Messenger Platform product',
           pageAccessToken: 'Generate Page Access Token',
           webhookUrl: `${baseUrl}/api/webhook`,
-          verifyToken: 'HiMetaConvAPIHi'
+          verifyToken: verifyToken || 'NOT_SET'
         }
       },
       
       troubleshooting: {
-        loginIssues: [
-          'Check login app (21102398933175) configuration',
-          'Verify OAuth Redirect URIs for login app',
-          'Ensure login app is Live mode',
-          'Clear browser cache and test'
+        commonIssues: [
+          'Check login app configuration',
+          'Complete Messenger Platform setup',
+          'Verify environment variables are set',
+          'Ensure webhook URL is accessible'
         ],
-        messengerIssues: [
-          'Complete Messenger Platform setup on app 30902396742455',
-          'Add environment variables to Vercel',
-          'Verify webhook URL is accessible',
-          'Test with Facebook Page admin'
+        quickLinks: [
+          `Login App: https://developers.facebook.com/apps/${loginAppId || '[LOGIN_APP_ID]'}/settings/basic/`,
+          `Login OAuth: https://developers.facebook.com/apps/${loginAppId || '[LOGIN_APP_ID]'}/fb-login/settings/`,
+          `Messenger App: https://developers.facebook.com/apps/${messengerAppId || '[MESSENGER_APP_ID]'}/`,
+          `Messenger Setup: https://developers.facebook.com/apps/${messengerAppId || '[MESSENGER_APP_ID]'}/messenger/`
         ]
       },
-      
-      debugActions: [
-        `Login App: https://developers.facebook.com/apps/21102398933175/settings/basic/`,
-        `Login OAuth: https://developers.facebook.com/apps/21102398933175/fb-login/settings/`,
-        `Messenger App: https://developers.facebook.com/apps/30902396742455/`,
-        `Messenger Setup: https://developers.facebook.com/apps/30902396742455/messenger/`
-      ]
+
+      environmentCheck: {
+        loginAppId: !!loginAppId,
+        messengerAppId: !!messengerAppId,
+        verifyToken: !!verifyToken,
+        pageAccessToken: !!process.env.PAGE_ACCESS_TOKEN,
+        pageId: !!process.env.PAGE_ID
+      }
     };
 
-    res.json(debugInfo);
+    res.status(200).json(debugInfo);
   } catch (error) {
     console.error('Debug endpoint error:', error);
-    res.status(500).json({
-      error: 'Debug endpoint failed',
-      details: error.message
+    res.status(500).json({ 
+      error: 'Debug endpoint failed', 
+      details: error.message 
     });
   }
 } 

@@ -23,8 +23,9 @@
 - Test builds locally before deployment to catch ESLint issues early
 
 ## Project Context
-- This is a project to implement conversation API features from facebook
-- Key existing features that must not be broken: login, messenger,
-- Login app id: 21102398933175
-- Messenger app id: 30902396742455
-- We deploy this project to vercel, the app url https://conversation-api-integration.vercel.app/
+- This is a project to implement conversation API features from Facebook
+- Key existing features that must not be broken: login, messenger
+- All sensitive data (App IDs, tokens, domains) are stored in environment variables
+- Login app id: process.env.REACT_APP_FACEBOOK_LOGIN_APP_ID
+- Messenger app id: process.env.FACEBOOK_APP_ID
+- Deployment URL: process.env.APP_DOMAIN or process.env.VERCEL_URL

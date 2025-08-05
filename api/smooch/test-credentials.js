@@ -34,7 +34,8 @@ export default async function handler(req, res) {
     const authString = `${keyId}:${secret}`;
     const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
     
-    const testUrl = `https://omniprototype.zendesk.com/sc/v2/apps/${appId}`;
+    const subdomain = process.env.ZENDESK_SUBDOMAIN || 'your-subdomain';
+    const testUrl = `https://${subdomain}.zendesk.com/sc/v2/apps/${appId}`;
     
     console.log('🔧 Testing URL:', testUrl);
     console.log('🔧 Auth header (first 20 chars):', authHeader.substring(0, 20) + '...');

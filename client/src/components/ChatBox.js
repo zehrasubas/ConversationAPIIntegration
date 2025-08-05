@@ -8,9 +8,66 @@ const ChatBox = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
-  const [isConnectedToStream, setIsConnectedToStream] = useState(false);
+  const [smoochInitialized, setSmoochInitialized] = useState(false);
   const messagesEndRef = useRef(null);
-  const sseConnectionRef = useRef(null);
+
+  // Initialize Smooch SDK for anonymous conversations
+  const initializeSmooch = useCallback(async () => {
+    if (smoochInitialized || window.Smooch) return;
+
+    try {
+      // Load Smooch SDK script
+      if (!window.Smooch) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.smooch.io/smooch.min.js';
+        script.async = true;
+        
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // Get or create web integration
+      const integrationResponse = await fetch('/api/smooch/create-web-integration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!integrationResponse.ok) {
+        throw new Error('Failed to create web integration');
+      }
+
+      const integrationData = await integrationResponse.json();
+      
+      if (!integrationData.success || !integrationData.integrationId) {
+        throw new Error('No integration ID received');
+      }
+
+      // Initialize Smooch with browser storage for anonymous users
+      await window.Smooch.init({
+        integrationId: integrationData.integrationId,
+        browserStorage: 'sessionStorage', // Persist during session, clear on browser close
+        embedded: false, // Don't show the widget in main chat
+        soundNotificationEnabled: false, // Disable sounds in main chat
+        menuItems: {} // Hide menu in main chat mode
+      });
+
+      setSmoochInitialized(true);
+      // eslint-disable-next-line no-console
+      console.log('✅ Smooch initialized for anonymous conversation');
+      
+      // Hide the Smooch widget since we're using our custom chat
+      if (window.Smooch.close) {
+        window.Smooch.close();
+      }
+
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to initialize Smooch:', error);
+    }
+  }, [smoochInitialized]);
 
   // Get or create consistent external ID for Sunshine conversations
   const getExternalId = useCallback(() => {
@@ -50,35 +107,32 @@ const ChatBox = ({ user }) => {
 
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
-  
-  // Check if Messenger integration is available
-  const hasMessengerIntegration = Boolean(user?.psid);
 
-  // Load conversation history from Sunshine API on component mount
+  // Initialize Smooch when component mounts (not on support page)
   useEffect(() => {
-    const loadConversationHistory = () => {
+    const setupConversation = async () => {
       try {
-        // Only load conversation history if we're not on the support page
+        // Only initialize if we're not on the support page
         if (window.location.pathname === '/support') {
           // eslint-disable-next-line no-console
-          console.log('🚫 Support page detected - not loading conversation history');
+          console.log('🚫 Support page detected - not initializing Smooch in ChatBox');
           return;
         }
 
         // eslint-disable-next-line no-console
-        console.log('🌞 Loading conversation history from Sunshine API only');
+        console.log('🌞 Setting up anonymous conversation with Smooch');
         
-        // We'll load from server via syncWithServerMessages instead of localStorage
-        // No localStorage fallback - Sunshine API only
+        // Initialize Smooch for anonymous conversations
+        await initializeSmooch();
         
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Error during conversation history setup:', error);
+        console.error('❌ Error during conversation setup:', error);
       }
     };
 
-    loadConversationHistory();
-  }, []);
+    setupConversation();
+  }, [initializeSmooch]);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -92,217 +146,65 @@ const ChatBox = ({ user }) => {
   // No longer save to localStorage - Sunshine API is the source of truth
   // Remove localStorage conversation history saving
 
-  // Handle new messages from SSE stream
-  const handleNewMessage = useCallback((newMessage) => {
-    // eslint-disable-next-line no-console
-    console.log('🆕 Received new message via SSE:', newMessage);
-    
-    // Check if we already have this message (avoid duplicates)
-    setMessages(prev => {
-      const existingIds = new Set(prev.map(msg => msg.id));
-      if (existingIds.has(newMessage.id)) {
-        // eslint-disable-next-line no-console
-        console.log('🔄 Message already exists, skipping duplicate:', newMessage.id);
-        return prev;
-      }
-      
-      // eslint-disable-next-line no-console
-      console.log('✨ Adding new message to chat:', newMessage);
-      return [...prev, newMessage];
-    });
-  }, []);
-
-  // Sync with server messages when opening chat
-  const syncWithServerMessages = useCallback(async () => {
-    try {
-      // eslint-disable-next-line no-console
-      console.log('🔄 Syncing with server messages...');
-      
-      const currentUserId = getUserId();
-      // eslint-disable-next-line no-console
-      console.log('🔄 Using user ID for sync:', currentUserId);
-      
-      // Fetch all messages from server (try Sunshine first, then fallback to old API)
-      const response = await chatService.fetchMessageHistory(currentUserId);
-      
-      if (response?.success && response.messages?.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log('📨 Server messages found:', response.messages.length);
-        
-        // Merge with local messages, avoiding duplicates
-        const localIds = new Set(messages.map(msg => msg.id));
-        const serverMessages = response.messages.filter(msg => !localIds.has(msg.id));
-        
-        if (serverMessages.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log('✨ Merging server messages:', serverMessages.length);
-          
-          // Sort all messages by timestamp
-          const allMessages = [...messages, ...serverMessages].sort((a, b) => 
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          );
-          
-          setMessages(allMessages);
-        }
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Error syncing with server:', error);
-    }
-  }, [getUserId, messages]);
-
-  // Connect to SSE stream for real-time messages
-  const connectToMessageStream = useCallback(() => {
-    if (!isAuthenticated || !user?.psid || sseConnectionRef.current) return;
-    
-    try {
-      // eslint-disable-next-line no-console
-      console.log('🌊 Connecting to message stream for user:', user.psid);
-      
-      const eventSource = chatService.connectToMessageStream(
-        user.psid,
-        handleNewMessage,
-        (error) => {
-          // eslint-disable-next-line no-console
-          console.error('❌ SSE connection error:', error);
-          setIsConnectedToStream(false);
-        }
-      );
-      
-      sseConnectionRef.current = eventSource;
-      setIsConnectedToStream(true);
-      
-      // Handle connection state changes
-      eventSource.addEventListener('open', () => {
-        setIsConnectedToStream(true);
-      });
-      
-      eventSource.addEventListener('error', () => {
-        setIsConnectedToStream(false);
-      });
-      
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Error connecting to message stream:', error);
-      setIsConnectedToStream(false);
-    }
-  }, [isAuthenticated, user?.psid, handleNewMessage]);
-
-  // Disconnect from SSE stream
-  const disconnectFromMessageStream = useCallback(() => {
-    if (sseConnectionRef.current) {
-      // eslint-disable-next-line no-console
-      console.log('🔌 Disconnecting from message stream');
-      sseConnectionRef.current.close();
-      sseConnectionRef.current = null;
-      setIsConnectedToStream(false);
-    }
-  }, []);
-
-  // Start/stop SSE connection based on chat state
-  useEffect(() => {
-    if (isOpen && isAuthenticated && user?.psid) {
-      // Sync with server first, then connect to SSE stream
-      syncWithServerMessages();
-      connectToMessageStream();
-    } else {
-      // Disconnect SSE when chat is closed or user is not authenticated
-      disconnectFromMessageStream();
-    }
-
-    // Cleanup on unmount
-    return () => {
-      disconnectFromMessageStream();
-    };
-  }, [isOpen, isAuthenticated, user?.psid, syncWithServerMessages, connectToMessageStream, disconnectFromMessageStream]);
+  // Smooch handles real-time messaging automatically
+  // No need for manual SSE connections
 
   // Fetch message history when chat is opened - COMMENTED OUT until Messenger setup
   // NOTE: Disabled until PAGE_ACCESS_TOKEN and Messenger Platform are configured
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !isAuthenticated) return;
+    if (!inputMessage.trim()) return;
 
-    const newMessage = {
-      id: Date.now(),
-      text: inputMessage,
-      sender: 'user',
-      timestamp: new Date().toISOString(),
-      status: 'sending'
-    };
-
-    // Optimistically add message to UI
-    setMessages(prev => [...prev, newMessage]);
+    const messageText = inputMessage;
     setInputMessage('');
 
     try {
-      let userPSID = user?.psid;
-      
-      // If no PSID yet, try to get one (on-demand Messenger integration)
-      if (!userPSID && user?.id) {
+      // If Smooch is initialized, send message through Smooch
+      if (smoochInitialized && window.Smooch) {
         // eslint-disable-next-line no-console
-        console.log('🔄 First message - attempting Messenger integration...');
-        try {
-          const response = await fetch('/api/exchange-token', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: getUserId()
-            })
-          });
+        console.log('📤 Sending message through Smooch:', messageText);
+        
+        // Send message through Smooch - it will handle the conversation
+        await window.Smooch.sendMessage({
+          type: 'text',
+          text: messageText
+        });
 
-          const data = await response.json();
-          // eslint-disable-next-line no-console
-          console.log('📬 PSID Exchange Response:', data);
-          
-          if (data?.success && data?.psid) {
-            userPSID = data.psid;
-            // eslint-disable-next-line no-console
-            console.log('✅ Messenger integration activated:', userPSID);
-            
-            // Update user data with PSID for future messages
-            const userWithPSID = {
-              ...user,
-              psid: userPSID,
-              messengerEnabled: true
-            };
-            localStorage.setItem('user', JSON.stringify(userWithPSID));
-            // Note: Not updating React state during message send to avoid complexity
-          } else {
-            // eslint-disable-next-line no-console
-            console.log('⚠️ Messenger integration not available - using local chat only');
-          }
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('❌ Error during Messenger integration:', error);
-          // eslint-disable-next-line no-console
-          console.log('📝 Continuing with local chat only');
-        }
+        // Add message to local UI for immediate feedback
+        const newMessage = {
+          id: Date.now(),
+          text: messageText,
+          sender: 'user',
+          timestamp: new Date().toISOString(),
+          status: 'sent'
+        };
+        setMessages(prev => [...prev, newMessage]);
+
+        // eslint-disable-next-line no-console
+        console.log('✅ Message sent through Smooch successfully');
+        return;
       }
 
-      // Send message to backend (which will try to send to Messenger)
-      // eslint-disable-next-line no-console
-      console.log('📤 Sending message to backend - Messenger Platform setup pending...');
+      // Fallback to original logic if Smooch not available
+      if (!isAuthenticated) return;
+
+      const newMessage = {
+        id: Date.now(),
+        text: messageText,
+        sender: 'user',
+        timestamp: new Date().toISOString(),
+        status: 'sending'
+      };
+
+      // Optimistically add message to UI
+      setMessages(prev => [...prev, newMessage]);
+
+      // Send through original API
       const currentUserId = getUserId();
       const currentExternalId = getExternalId();
       
-      // eslint-disable-next-line no-console
-      console.log('🆔 Using IDs for message sending:');
-      console.log('  - User ID (for Facebook):', currentUserId);
-      console.log('  - External ID (for Sunshine):', currentExternalId);
-      
-      const response = await chatService.sendMessage(inputMessage, userPSID || currentUserId, currentExternalId);
-
-      // eslint-disable-next-line no-console
-      console.log('Message sent successfully:', response);
-      
-      // Show status in UI based on response
-      if (response?.status === 'local_only') {
-        // eslint-disable-next-line no-console
-        console.log('💾 Message stored locally only - Messenger Platform not configured yet');
-      }
+      const response = await chatService.sendMessage(messageText, currentUserId, currentExternalId);
 
       // Update message status
       setMessages(prev => prev.map(msg => 
@@ -317,8 +219,8 @@ const ChatBox = ({ user }) => {
       
       // Update message status to show error
       setMessages(prev => prev.map(msg => 
-        msg.id === newMessage.id 
-          ? { ...msg, status: 'local_only', error: true }
+        msg.text === messageText
+          ? { ...msg, status: 'failed', error: true }
           : msg
       ));
     }
@@ -383,14 +285,14 @@ const ChatBox = ({ user }) => {
                 Please log in with Facebook to start chatting
               </div>
             )}
-            {isAuthenticated && !hasMessengerIntegration && (
+            {!smoochInitialized && isAuthenticated && (
               <div className="login-prompt">
-                Send a message to activate Messenger integration
+                Initializing secure conversation...
               </div>
             )}
-            {isAuthenticated && hasMessengerIntegration && isConnectedToStream && (
+            {smoochInitialized && (
               <div className="polling-indicator">
-                <i className="fas fa-wifi"></i> Connected to live messages
+                <i className="fas fa-shield-alt"></i> Secure conversation ready
               </div>
             )}
           </div>

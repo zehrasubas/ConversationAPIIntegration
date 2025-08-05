@@ -65,64 +65,8 @@ function SupportPage() {
     
   }, []);
 
-  const getExternalId = () => {
-    try {
-      // Get external ID from session storage (set during chat initialization)
-      let externalId = sessionStorage.getItem('supportExternalId');
-      
-      if (!externalId) {
-        // Generate from current user ID pattern if available
-        const currentUserId = sessionStorage.getItem('currentUserId');
-        const userPSID = sessionStorage.getItem('userPSID');
-        
-        if (currentUserId && currentUserId.startsWith('facebook_')) {
-          externalId = currentUserId; // Already in facebook_USER format
-        } else if (userPSID) {
-          externalId = `facebook_${userPSID}`;
-        } else {
-          // Generate anonymous external ID
-          externalId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        }
-        
-        // Store for future use
-        sessionStorage.setItem('supportExternalId', externalId);
-        
-        // eslint-disable-next-line no-console
-        console.log('🔑 Generated external ID for support:', externalId);
-      } else {
-        // eslint-disable-next-line no-console
-        console.log('🔑 Using existing external ID for support:', externalId);
-      }
-      
-      return externalId;
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Error getting external ID:', error);
-      return null;
-    }
-  };
-
-  // Ensure external ID is set
-  useEffect(() => {
-    const setupExternalId = () => {
-      try {
-        const externalId = getExternalId();
-        if (externalId) {
-          // eslint-disable-next-line no-console
-          console.log('✅ External ID prepared for Smooch widget:', externalId);
-        } else {
-          // eslint-disable-next-line no-console
-          console.warn('⚠️ No external ID available for support page');
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('❌ Failed to prepare external ID for Smooch widget:', error);
-        setError('Failed to prepare support session');
-      }
-    };
-
-    setupExternalId();
-  }, []);
+  // Smooch SDK handles anonymous user identity automatically via sessionStorage
+  // No manual external ID management needed - conversation will continue seamlessly
 
   const initializeSmoochWidget = () => {
     // eslint-disable-next-line no-console
@@ -156,61 +100,47 @@ function SupportPage() {
         console.log('✅ Web integration created successfully!');
         console.log('🔧 Integration ID:', integrationData.integrationId);
 
-        // Step 2: Get App Token for anonymous users (simpler than JWT)
+        // Step 2: Initialize Smooch with sessionStorage to continue anonymous conversation
         // eslint-disable-next-line no-console
-        console.log('🔧 Getting app token for anonymous users...');
+        console.log('🔧 Initializing Smooch to continue anonymous conversation from main chat...');
 
-        const tokenResponse = await fetch('/api/smooch/generate-app-token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!tokenResponse.ok) {
-          const errorText = await tokenResponse.text();
-          throw new Error(`Failed to get app token: ${tokenResponse.status} - ${errorText}`);
-        }
-
-        const tokenData = await tokenResponse.json();
-        
-        if (!tokenData.success || !tokenData.appToken) {
-          throw new Error(`No app token received. Response: ${JSON.stringify(tokenData)}`);
-        }
-
-        // eslint-disable-next-line no-console
-        console.log('✅ App token received successfully!');
-
-        // Step 3: Initialize Smooch with integration ID + App Token (for anonymous)
         const smoochConfig = {
           integrationId: integrationData.integrationId,
-          appToken: tokenData.appToken  // For anonymous users - simpler than JWT
+          browserStorage: 'sessionStorage', // Same as ChatBox - will find existing anonymous user
+          soundNotificationEnabled: true,
+          embedded: false, // Full widget experience for support
+          menuItems: {
+            imageUpload: true,
+            fileUpload: true,
+            shareLocation: false
+          }
         };
 
         // eslint-disable-next-line no-console
-        console.log('🔧 Initializing Smooch with integration ID + App Token...');
         console.log('🔧 Config:', {
           hasIntegrationId: !!smoochConfig.integrationId,
-          hasAppToken: !!smoochConfig.appToken,
-          appTokenLength: smoochConfig.appToken.length
+          browserStorage: smoochConfig.browserStorage
         });
 
         return window.Smooch.init(smoochConfig).then(() => {
           // eslint-disable-next-line no-console
-          console.log('✅ Smooch initialized successfully with integration ID + App Token!');
+          console.log('✅ Smooch initialized! Anonymous conversation should continue automatically from main chat.');
+          
+          // Open the widget immediately to show continued conversation
+          window.Smooch.open();
           
           setError(null);
           setLoading(false);
           
           // eslint-disable-next-line no-console
-          console.log('🎉 Support widget initialized successfully!');
+          console.log('🎉 Support widget ready - conversation history should be preserved!');
           
         });
         
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Integration + App Token initialization failed:', error);
-        setError('Failed to initialize support widget - integration + app token approach failed');
+        console.error('❌ Failed to initialize Smooch widget:', error);
+        setError('Failed to initialize support widget: ' + error.message);
         setLoading(false);
       }
     };

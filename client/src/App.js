@@ -24,9 +24,15 @@ function FacebookLogin({ onLogin }) {
         console.log('🌐 Current protocol:', window.location.protocol);
         
         try {
-          console.log('🔧 Attempting to initialize with App ID: 21102398933175');
+          const appId = process.env.REACT_APP_FACEBOOK_LOGIN_APP_ID;
+          console.log('🔧 Attempting to initialize with App ID from environment:', appId ? 'SET' : 'MISSING');
+          
+          if (!appId) {
+            throw new Error('REACT_APP_FACEBOOK_LOGIN_APP_ID environment variable is not set');
+          }
+          
           window.FB.init({
-            appId: '21102398933175',
+            appId: appId,
             cookie: true,
             xfbml: true,
             version: 'v19.0'
@@ -102,8 +108,13 @@ function FacebookLogin({ onLogin }) {
               } catch (error) {
                 console.log('🔄 FB not initialized, trying manual init');
                 try {
+                  const appId = process.env.REACT_APP_FACEBOOK_LOGIN_APP_ID;
+                  if (!appId) {
+                    throw new Error('REACT_APP_FACEBOOK_LOGIN_APP_ID environment variable is not set');
+                  }
+                  
                   window.FB.init({
-                    appId: '21102398933175',
+                    appId: appId,
                     cookie: true,
                     xfbml: true,
                     version: 'v19.0'

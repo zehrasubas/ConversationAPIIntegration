@@ -17,7 +17,8 @@ export default async function handler(req, res) {
     const formattedHistory = formatConversationHistory(conversationHistory);
     
     // Prepare user info
-    const requesterEmail = userEmail || 'noreply@conversation-api-integration.vercel.app';
+    const defaultDomain = process.env.APP_DOMAIN || 'your-domain.vercel.app';
+    const requesterEmail = userEmail || `noreply@${defaultDomain}`;
     const requesterName = userName || 'Website Visitor';
 
     const ticketData = {
