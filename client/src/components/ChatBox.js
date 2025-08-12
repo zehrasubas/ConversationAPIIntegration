@@ -176,6 +176,29 @@ const ChatBox = ({ user }) => {
     // eslint-disable-next-line no-console
     console.log('🎫 Preparing to transfer to support page...');
     
+    // First, let's check what's in the chat history manager
+    const allMessages = chatHistoryManager.getAllMessages();
+    const currentConversation = chatHistoryManager.getFormattedConversation();
+    
+    // eslint-disable-next-line no-console
+    console.log('📊 Debug - Current messages in UI:', messages.length);
+    // eslint-disable-next-line no-console
+    console.log('📊 Debug - Messages in history manager:', allMessages.length);
+    // eslint-disable-next-line no-console
+    console.log('📊 Debug - Current conversation data:', currentConversation);
+    
+    // If no conversation exists, create a sample one for testing
+    if (!currentConversation && messages.length === 0) {
+      // eslint-disable-next-line no-console
+      console.log('⚠️ No conversation found, creating test conversation...');
+      
+      // Add some test messages
+      chatHistoryManager.addMessage('Hi, I need help with my order', 'customer');
+      chatHistoryManager.addMessage('Hello! I\'d be happy to help you with your order. What seems to be the issue?', 'agent');
+      chatHistoryManager.addMessage('My order #12345 hasn\'t arrived yet and it was supposed to be here yesterday', 'customer');
+      chatHistoryManager.addMessage('I understand your concern. Let me transfer you to our support team for immediate assistance.', 'agent');
+    }
+    
     // Prepare conversation for transfer
     const transferData = chatHistoryManager.prepareTransfer();
     
@@ -184,6 +207,8 @@ const ChatBox = ({ user }) => {
       console.log('📋 Conversation prepared for transfer:', transferData.metadata);
       // eslint-disable-next-line no-console
       console.log('🔢 Messages to transfer:', transferData.messages.length);
+      // eslint-disable-next-line no-console
+      console.log('📝 Formatted text preview:', transferData.formattedText?.substring(0, 200) + '...');
     } else {
       // eslint-disable-next-line no-console
       console.log('⚠️ No conversation history to transfer');

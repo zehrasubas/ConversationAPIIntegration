@@ -86,8 +86,10 @@ class ZendeskHistoryInjector {
   waitForZendesk() {
     if (typeof window.zE !== 'undefined') {
       // eslint-disable-next-line no-console
-      console.log('✅ Zendesk widget found, injecting history');
-      this.injectHistory();
+      console.log('✅ Zendesk widget found, waiting for it to be ready...');
+      
+      // Wait for the widget to be fully ready before injecting
+      this.waitForWidgetReady();
     } else if (this.injectionAttempts < this.maxAttempts) {
       this.injectionAttempts++;
       // eslint-disable-next-line no-console
@@ -101,54 +103,124 @@ class ZendeskHistoryInjector {
   }
 
   /**
+   * Wait for widget to be fully ready
+   */
+  waitForWidgetReady() {
+    try {
+      // Try to set up ready listeners
+      window.zE('messenger:on', 'ready', () => {
+        // eslint-disable-next-line no-console
+        console.log('🎯 Zendesk messenger ready event fired');
+        setTimeout(() => this.injectHistory(), 500);
+      });
+
+      // Also try legacy API
+      window.zE('webWidget:on', 'ready', () => {
+        // eslint-disable-next-line no-console
+        console.log('🎯 Zendesk webWidget ready event fired');
+        setTimeout(() => this.injectHistory(), 500);
+      });
+
+      // Fallback: try to inject after a delay anyway
+      setTimeout(() => {
+        if (!this.isInjected) {
+          // eslint-disable-next-line no-console
+          console.log('⏰ Fallback: Attempting to inject after timeout');
+          this.injectHistory();
+        }
+      }, 3000);
+
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Error setting up widget ready listeners:', error);
+      // Fallback to direct injection
+      setTimeout(() => this.injectHistory(), 2000);
+    }
+  }
+
+  /**
    * Inject conversation history into Zendesk widget
    */
   injectHistory() {
     if (this.isInjected) return; // Prevent double injection
     
     try {
-      // Wait for widget to be ready
-      window.zE('messenger:on', 'ready', () => {
-        if (this.isInjected) return; // Prevent double injection
-        this.isInjected = true;
-        
-        // eslint-disable-next-line no-console
-        console.log('📬 Zendesk messenger ready, prefilling conversation');
-        
-        // Get formatted conversation text
-        const formattedText = this.conversation.formattedText || 
-                            this.formatConversation();
-        
-        // Prefill the message field with conversation history
-        window.zE('messenger', 'prefill', {
-          message: {
-            value: formattedText
-          }
-        });
-        
-        // Set any available metadata
-        this.setMetadata();
-        
-        // Auto-open the widget immediately after prefilling
-        setTimeout(() => {
-          window.zE('messenger', 'open');
-          // eslint-disable-next-line no-console
-          console.log('✅ Zendesk widget auto-opened with conversation history');
-        }, 1000);
-        
-        // Show notification to user
-        this.showTransferNotification();
-      });
+      // Get formatted conversation text
+      const formattedText = this.conversation.formattedText || 
+                          this.formatConversation();
       
-      // Also try to open immediately in case messenger is already ready
+      // eslint-disable-next-line no-console
+      console.log('📬 Prefilling Zendesk widget with conversation:', formattedText.substring(0, 100) + '...');
+      
+      // Try multiple API formats for compatibility
+      this.tryMultiplePrefillMethods(formattedText);
+      
+      // Set any available metadata
+      this.setMetadata();
+      
+      // Auto-open the widget after prefilling
       setTimeout(() => {
-        window.zE('messenger', 'open');
-      }, 500);
+        this.openWidget();
+        // eslint-disable-next-line no-console
+        console.log('✅ Zendesk widget auto-opened with conversation history');
+      }, 1500);
+      
+      // Show notification to user
+      setTimeout(() => {
+        this.showTransferNotification();
+      }, 2000);
+      
+      this.isInjected = true;
       
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('❌ Failed to inject history:', error);
       this.openZendeskNormally();
+    }
+  }
+
+  /**
+   * Try multiple prefill methods for better compatibility
+   */
+  tryMultiplePrefillMethods(formattedText) {
+    // Method 1: Modern messenger API
+    try {
+      window.zE('messenger', 'prefill', {
+        message: {
+          value: formattedText
+        }
+      });
+      // eslint-disable-next-line no-console
+      console.log('✅ Method 1: Modern messenger prefill attempted');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log('⚠️ Method 1 failed:', error.message);
+    }
+
+    // Method 2: Legacy webWidget API
+    try {
+      window.zE('webWidget', 'prefill', {
+        message: {
+          value: formattedText
+        }
+      });
+      // eslint-disable-next-line no-console
+      console.log('✅ Method 2: Legacy webWidget prefill attempted');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log('⚠️ Method 2 failed:', error.message);
+    }
+
+    // Method 3: Alternative messenger format
+    try {
+      window.zE('messenger:set', 'composer', {
+        value: formattedText
+      });
+      // eslint-disable-next-line no-console
+      console.log('✅ Method 3: Messenger composer set attempted');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.log('⚠️ Method 3 failed:', error.message);
     }
   }
 
@@ -309,7 +381,22 @@ class ZendeskHistoryInjector {
    */
   openWidget() {
     if (typeof window.zE !== 'undefined') {
-      window.zE('messenger', 'open');
+      try {
+        // Try modern messenger API first
+        window.zE('messenger', 'open');
+        // eslint-disable-next-line no-console
+        console.log('📱 Opening widget with messenger API');
+      } catch (error) {
+        try {
+          // Fallback to legacy webWidget API
+          window.zE('webWidget', 'open');
+          // eslint-disable-next-line no-console
+          console.log('📱 Opening widget with webWidget API');
+        } catch (fallbackError) {
+          // eslint-disable-next-line no-console
+          console.error('❌ Failed to open widget with both APIs:', error, fallbackError);
+        }
+      }
     }
   }
 }
