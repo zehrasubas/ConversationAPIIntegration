@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import zendeskIntegration from '../services/zendeskWidgetIntegration';
 import './SupportPage.css';
 
 function SupportPage() {
   const [loading, setLoading] = useState(true);
+  const [widgetReady, setWidgetReady] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -14,24 +16,18 @@ function SupportPage() {
         localStorage.removeItem('ZD-suid');
         localStorage.removeItem('ZD-buid');
         
-        // Clear widget session storage
+        // Clear only Smooch-related storage (keep Zendesk widget storage)
         Object.keys(sessionStorage).forEach(key => {
-          if (key.toLowerCase().includes('smooch') || 
-              key.toLowerCase().includes('zendesk') || 
-              key.toLowerCase().includes('ze_') ||
-              key.toLowerCase().includes('zd-')) {
+          if (key.toLowerCase().includes('smooch')) {
             sessionStorage.removeItem(key);
           }
         });
 
-        // Clear any widget cookies if possible
+        // Clear only Smooch-related cookies
         document.cookie.split(";").forEach(cookie => {
           const eqPos = cookie.indexOf("=");
           const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-          if (name.toLowerCase().includes('smooch') ||
-              name.toLowerCase().includes('zendesk') || 
-              name.toLowerCase().includes('ze_') ||
-              name.toLowerCase().includes('zd-')) {
+          if (name.toLowerCase().includes('smooch')) {
             document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
           }
         });
@@ -46,7 +42,7 @@ function SupportPage() {
 
     clearPreviousWidgetData();
     
-    // Force clear any existing widget instances
+    // Clear any existing Smooch instances
     if (window.Smooch) {
       try {
         // eslint-disable-next-line no-console
@@ -58,85 +54,52 @@ function SupportPage() {
         // eslint-disable-next-line no-console
         console.log('ℹ️ No existing Smooch session to clear');
       }
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('ℹ️ No existing widget session to clear');
     }
     
+    // Initialize Zendesk widget integration
+    initializeZendeskWidget();
   }, []);
 
-  // Smooch SDK handles anonymous user identity automatically via sessionStorage
-  // No manual external ID management needed - conversation will continue seamlessly
-
-  const initializeSmoochWidget = () => {
+  const initializeZendeskWidget = () => {
     // eslint-disable-next-line no-console
-    console.log('🚀 Initializing Smooch SDK widget...');
+    console.log('🚀 Initializing Zendesk Web Widget...');
     
-    const createWebIntegrationAndInit = async () => {
-      try {
-        // Use hardcoded integration ID for anonymous conversations
-        const integrationId = '687975521a4fb14cfda56f88';
-        
-        // eslint-disable-next-line no-console
-        console.log('🔧 Using hardcoded integration ID:', integrationId);
-        console.log('🔧 Initializing Smooch to continue anonymous conversation from main chat...');
-
-        const smoochConfig = {
-          integrationId: integrationId,
-          browserStorage: 'sessionStorage', // Same as ChatBox - will find existing anonymous user
-          soundNotificationEnabled: true,
-          embedded: false, // Full widget experience for support
-          menuItems: {
-            imageUpload: true,
-            fileUpload: true,
-            shareLocation: false
-          }
-        };
-
-        // eslint-disable-next-line no-console
-        console.log('🔧 Config:', {
-          hasIntegrationId: !!smoochConfig.integrationId,
-          browserStorage: smoochConfig.browserStorage
-        });
-
-        return window.Smooch.init(smoochConfig).then(() => {
-          // eslint-disable-next-line no-console
-          console.log('✅ Smooch initialized! Anonymous conversation should continue automatically from main chat.');
-          
-          // Open the widget immediately to show continued conversation
-          window.Smooch.open();
-          
-          setError(null);
-          setLoading(false);
-          
-          // eslint-disable-next-line no-console
-          console.log('🎉 Support widget ready - conversation history should be preserved!');
-          
-        });
-        
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('❌ Failed to initialize Smooch widget:', error);
-        setError('Failed to initialize support widget: ' + error.message);
-        setLoading(false);
+    try {
+      // Check if Zendesk widget key is configured
+      const zendeskKey = process.env.REACT_APP_ZENDESK_WIDGET_KEY;
+      
+      if (!zendeskKey) {
+        throw new Error('Zendesk widget key not configured. Please set REACT_APP_ZENDESK_WIDGET_KEY environment variable.');
       }
-    };
-    
-    // Load Smooch SDK if not already loaded
-    if (!window.Smooch) {
+      
+      // Load Zendesk widget script
+      loadZendeskWidget(zendeskKey);
+      
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to initialize Zendesk widget:', error);
+      setError('Failed to initialize support widget: ' + error.message);
+      setLoading(false);
+    }
+  };
+  
+  const loadZendeskWidget = (widgetKey) => {
+    // Load Zendesk widget script if not already loaded
+    if (!window.zE) {
       const script = document.createElement('script');
-      script.src = 'https://cdn.smooch.io/smooch.min.js';
+      script.id = 'ze-snippet';
+      script.src = `https://static.zdassets.com/ekr/snippet.js?key=${widgetKey}`;
       script.async = true;
       
       script.onload = () => {
         // eslint-disable-next-line no-console
-        console.log('✅ Smooch SDK script loaded');
-        createWebIntegrationAndInit();
+        console.log('✅ Zendesk Widget script loaded');
+        setupZendeskIntegration();
       };
       
       script.onerror = () => {
         // eslint-disable-next-line no-console
-        console.error('❌ Failed to load Smooch SDK script');
+        console.error('❌ Failed to load Zendesk Widget script');
         setError('Failed to load support widget');
         setLoading(false);
       };
@@ -144,23 +107,41 @@ function SupportPage() {
       document.head.appendChild(script);
     } else {
       // eslint-disable-next-line no-console
-      console.log('✅ Smooch SDK already loaded, creating web integration...');
-      createWebIntegrationAndInit();
+      console.log('✅ Zendesk Widget already loaded');
+      setupZendeskIntegration();
+    }
+  };
+  
+  const setupZendeskIntegration = () => {
+    try {
+      // Initialize Zendesk integration with history transfer
+      zendeskIntegration.init();
+      
+      setWidgetReady(true);
+      setError(null);
+      setLoading(false);
+      
+      // eslint-disable-next-line no-console
+      console.log('🎉 Zendesk widget ready!');
+      
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to setup Zendesk integration:', error);
+      setError('Failed to setup support widget: ' + error.message);
+      setLoading(false);
     }
   };
 
-  // Initialize Smooch widget when component is ready
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      initializeSmoochWidget();
-    }, 1000); // Small delay to ensure external ID is set
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleBackToWebsite = () => {
     localStorage.removeItem('conversationHistory');
     window.location.href = '/';
+  };
+
+  const handleOpenChat = () => {
+    if (zendeskIntegration) {
+      zendeskIntegration.openWidget();
+    }
   };
 
   if (error) {
@@ -229,13 +210,38 @@ function SupportPage() {
                 <i className="fas fa-check-circle"></i>
               </div>
               <h2>Connected to Support</h2>
-              <p>Your support chat is ready! The widget should open automatically.</p>
+              <p>Your support chat is ready! {widgetReady ? 'Click below to open the chat widget.' : 'The widget should load automatically.'}</p>
+              
+              {widgetReady && (
+                <button 
+                  className="open-chat-button"
+                  onClick={handleOpenChat}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#2196F3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    marginTop: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <i className="fas fa-comments"></i>
+                  Open Support Chat
+                </button>
+              )}
             </div>
           </div>
         )}
         
-        <div id="smooch-widget-container">
-          {/* Smooch widget appears here automatically */}
+        <div id="zendesk-widget-container">
+          {/* Zendesk widget appears here automatically */}
         </div>
       </div>
     </div>

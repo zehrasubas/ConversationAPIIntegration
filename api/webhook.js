@@ -1,7 +1,6 @@
 // Facebook Webhook Handler for Vercel
 const fetch = require('node-fetch');
 const messageStore = require('./shared/messageStore');
-const sunshineStore = require('./shared/sunshineConversationStore');
 
 // Send message to Facebook
 async function sendToFacebook(recipientId, text) {
@@ -159,38 +158,9 @@ export default async function handler(req, res) {
                 console.log('✅ Successfully stored message in local store:', JSON.stringify(storedMessage, null, 2));
                 console.log('🔍 Current message count for user:', messageStore.getMessages(senderId).length);
 
-                // Create or update Sunshine conversation - REQUIRED, NO FALLBACKS
-                console.log('🌞 Processing Sunshine conversation for PSID:', senderId);
-                
-                // Get or create Sunshine conversation for this Facebook user
-                const conversationInfo = await sunshineStore.getOrCreateConversation(
-                  senderId, 
-                  webhookEvent.message.text
-                );
-                
-                if (conversationInfo.isNew) {
-                  console.log('✨ Created new Sunshine conversation:', conversationInfo.conversationId);
-                  console.log('👤 Sunshine user ID:', conversationInfo.userId);
-                } else {
-                  console.log('📝 Using existing Sunshine conversation:', conversationInfo.conversationId);
-                  
-                  // Add message to existing conversation
-                  const messageAdded = await sunshineStore.addMessageToConversation(
-                    senderId,
-                    webhookEvent.message.text,
-                    'user' // Message from Facebook user
-                  );
-                  
-                  if (!messageAdded) {
-                    throw new Error('Failed to add message to Sunshine conversation');
-                  }
-                  
-                  console.log('✅ Added message to existing Sunshine conversation');
-                }
-                
-                // Log current conversation mappings for debugging
-                const allConversations = sunshineStore.getAllConversations();
-                console.log('📊 Current Sunshine conversation mappings:', allConversations.length);
+                // Note: Sunshine Conversations integration removed
+                // Messages are now handled via local chat history and Zendesk Web Widget prefill
+                console.log('📝 Message stored in local store for potential transfer to Zendesk widget');
 
               } catch (error) {
                 console.error('❌ Error storing message:', error);

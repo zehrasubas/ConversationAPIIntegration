@@ -31,11 +31,13 @@ PAGE_ID=your_facebook_page_id
 VERIFY_TOKEN=your_webhook_verify_token
 WEBHOOK_SECRET=your_webhook_secret
 
-# Zendesk Sunshine Conversations
-ZENDESK_SUNSHINE_APP_ID=your_sunshine_app_id
-ZENDESK_SUNSHINE_KEY_ID=your_sunshine_key_id
-ZENDESK_SUNSHINE_SECRET=your_sunshine_secret
-ZENDESK_SUBDOMAIN=your_zendesk_subdomain
+# Zendesk Web Widget (for client-side chat integration)
+REACT_APP_ZENDESK_WIDGET_KEY=your_zendesk_widget_key
+
+# Optional: Traditional Zendesk API (for ticket creation fallback)
+ZENDESK_SUBDOMAIN=your_zendesk_subdomain  
+ZENDESK_EMAIL=your_zendesk_email
+ZENDESK_API_TOKEN=your_zendesk_api_token
 ```
 
 ## 🔧 **Facebook Developer Console Setup**

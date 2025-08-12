@@ -1,7 +1,6 @@
 // Send Message API Endpoint for Messenger Platform
 const fetch = require('node-fetch');
 const messageStore = require('../shared/messageStore');
-const sunshineStore = require('../shared/sunshineConversationStore');
 
 // Send message to Facebook Messenger Platform
 async function sendToFacebookMessenger(recipientPSID, text) {
@@ -66,8 +65,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, userId, externalId } = req.body;
-    console.log('📬 Send message request:', { message, userId, externalId });
+    const { message, userId } = req.body;
+    console.log('📬 Send message request:', { message, userId });
 
     if (!message || !userId) {
       return res.status(400).json({ error: 'Message and userId are required' });
@@ -85,49 +84,9 @@ export default async function handler(req, res) {
     const storedMessage = messageStore.addMessage(userId, userMessage);
     console.log('💾 User message stored:', storedMessage);
 
-    // Create or update Sunshine conversation if external ID provided
-    if (externalId) {
-      console.log('🌞 Processing Sunshine conversation for external ID:', externalId);
-      console.log('🔍 External ID analysis:');
-      console.log('  - External ID:', externalId);
-      console.log('  - Is Facebook ID pattern:', externalId.startsWith('facebook_'));
-      console.log('  - Is anonymous pattern:', externalId.startsWith('anonymous_'));
-      
-      try {
-        // Get or create Sunshine conversation for this external ID
-        const conversationInfo = await sunshineStore.getOrCreateConversation(
-          externalId, 
-          message
-        );
-        
-        if (conversationInfo.isNew) {
-          console.log('✨ Created new Sunshine conversation for external ID:', conversationInfo.conversationId);
-          console.log('👤 Sunshine user ID:', conversationInfo.sunshineUserId);
-        } else {
-          console.log('📝 Using existing Sunshine conversation:', conversationInfo.conversationId);
-          
-          // Add message to existing conversation
-          const messageAdded = await sunshineStore.addMessageToConversation(
-            externalId,
-            message,
-            'user' // Message from website user
-          );
-          
-          if (!messageAdded) {
-            console.warn('⚠️ Failed to add website message to existing Sunshine conversation');
-          } else {
-            console.log('✅ Added website message to Sunshine conversation');
-          }
-        }
-      } catch (sunshineError) {
-        console.error('❌ Error processing Sunshine conversation for external ID:', sunshineError);
-        console.error('❌ Sunshine error details:', sunshineError.message);
-        console.log('🔄 Continuing message processing despite Sunshine failure');
-        // Continue processing - don't let Sunshine failures break the main chat
-      }
-    } else {
-      console.log('ℹ️ No external ID provided - skipping Sunshine conversation creation');
-    }
+    // Note: Sunshine Conversations integration removed
+    // Messages are stored locally and can be transferred to Zendesk widget via prefill
+    console.log('📝 Message stored locally for potential transfer to Zendesk widget');
 
     // Check if Messenger Platform is configured
     if (!process.env.PAGE_ACCESS_TOKEN) {

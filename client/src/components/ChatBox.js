@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { chatService } from '../services/chatService';
+import chatHistoryManager from '../services/chatHistoryManager';
 import './ChatBox.css';
 
 const ChatBox = ({ user }) => {
@@ -8,73 +9,32 @@ const ChatBox = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
-  const [smoochInitialized, setSmoochInitialized] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Initialize Smooch SDK for anonymous conversations
-  const initializeSmooch = useCallback(async () => {
-    if (smoochInitialized) return;
-
+  // Initialize chat history manager
+  const initializeChatHistory = useCallback(() => {
     try {
-      // Load Smooch SDK script
-      if (!window.Smooch) {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.smooch.io/smooch.min.js';
-        script.async = true;
-        
-        await new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      }
-
-      // Use hardcoded integration ID for anonymous conversations
-      const integrationId = '687975521a4fb14cfda56f88';
+      // Load existing conversation history
+      const existingMessages = chatHistoryManager.getAllMessages();
+      setMessages(existingMessages);
+      setHistoryLoaded(true);
       
       // eslint-disable-next-line no-console
-      console.log('🔧 Initializing Smooch with integration ID:', integrationId);
-
-      // Initialize Smooch with browser storage for anonymous users
-      await window.Smooch.init({
-        integrationId: integrationId,
-        browserStorage: 'sessionStorage', // Persist during session, clear on browser close
-        embedded: false, // Don't show the widget in main chat
-        soundNotificationEnabled: false, // Disable sounds in main chat
-        menuItems: {} // Hide menu in main chat mode
-      });
-
-      setSmoochInitialized(true);
-      // eslint-disable-next-line no-console
-      console.log('✅ Smooch initialized for anonymous conversation');
-      
-      // Hide the Smooch widget since we're using our custom chat
-      if (window.Smooch.close) {
-        window.Smooch.close();
-      }
-
+      console.log('📖 Chat history initialized:', existingMessages.length, 'messages loaded');
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('❌ Failed to initialize Smooch:', error);
+      console.error('❌ Failed to initialize chat history:', error);
+      setHistoryLoaded(true); // Still mark as loaded to avoid blocking UI
     }
-  }, [smoochInitialized]);
+  }, []);
 
-  // Get or create consistent external ID for Sunshine conversations
-  const getExternalId = useCallback(() => {
-    // If user is logged in with Facebook, use their ID as base
-    if (user?.id) {
-      return `facebook_${user.id}`;
+  // Generate user display name for chat history
+  const getUserDisplayName = useCallback(() => {
+    if (user?.name) {
+      return user.name;
     }
-    
-    // Otherwise, get or create session-based external ID
-    let externalId = sessionStorage.getItem('sunshineExternalId');
-    if (!externalId) {
-      externalId = `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem('sunshineExternalId', externalId);
-      // eslint-disable-next-line no-console
-      console.log('🆔 Generated new Sunshine external ID:', externalId);
-    }
-    return externalId;
+    return 'You';
   }, [user]);
 
   // Get or create user ID (Facebook ID or session-based ID)
@@ -98,31 +58,31 @@ const ChatBox = ({ user }) => {
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
 
-  // Initialize Smooch when component mounts (not on support page)
+  // Initialize chat history when component mounts (not on support page)
   useEffect(() => {
-    const setupConversation = async () => {
+    const setupChatHistory = () => {
       try {
         // Only initialize if we're not on the support page
         if (window.location.pathname === '/support') {
           // eslint-disable-next-line no-console
-          console.log('🚫 Support page detected - not initializing Smooch in ChatBox');
+          console.log('🚫 Support page detected - not initializing ChatBox history');
           return;
         }
 
         // eslint-disable-next-line no-console
-        console.log('🌞 Setting up anonymous conversation with Smooch');
+        console.log('📜 Setting up chat history manager');
         
-        // Initialize Smooch for anonymous conversations
-        await initializeSmooch();
+        // Initialize chat history
+        initializeChatHistory();
         
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ Error during conversation setup:', error);
+        console.error('❌ Error during chat history setup:', error);
       }
     };
 
-    setupConversation();
-  }, [initializeSmooch]);
+    setupChatHistory();
+  }, [initializeChatHistory]);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -133,14 +93,8 @@ const ChatBox = ({ user }) => {
     scrollToBottom();
   }, [messages]);
 
-  // No longer save to localStorage - Sunshine API is the source of truth
-  // Remove localStorage conversation history saving
-
-  // Smooch handles real-time messaging automatically
-  // No need for manual SSE connections
-
-  // Fetch message history when chat is opened - COMMENTED OUT until Messenger setup
-  // NOTE: Disabled until PAGE_ACCESS_TOKEN and Messenger Platform are configured
+  // Chat history is now managed by chatHistoryManager
+  // Messages are persisted to localStorage/sessionStorage for transfer to Zendesk
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -150,33 +104,6 @@ const ChatBox = ({ user }) => {
     setInputMessage('');
 
     try {
-      // If Smooch is initialized, send message through Smooch
-      if (smoochInitialized && window.Smooch) {
-        // eslint-disable-next-line no-console
-        console.log('📤 Sending message through Smooch:', messageText);
-        
-        // Send message through Smooch - it will handle the conversation
-        await window.Smooch.sendMessage({
-          type: 'text',
-          text: messageText
-        });
-
-        // Add message to local UI for immediate feedback
-        const newMessage = {
-          id: Date.now(),
-          text: messageText,
-          sender: 'user',
-          timestamp: new Date().toISOString(),
-          status: 'sent'
-        };
-        setMessages(prev => [...prev, newMessage]);
-
-        // eslint-disable-next-line no-console
-        console.log('✅ Message sent through Smooch successfully');
-        return;
-      }
-
-      // Fallback to original logic if Smooch not available
       if (!isAuthenticated) return;
 
       const newMessage = {
@@ -190,11 +117,13 @@ const ChatBox = ({ user }) => {
       // Optimistically add message to UI
       setMessages(prev => [...prev, newMessage]);
 
-      // Send through original API
+      // Add message to chat history manager
+      chatHistoryManager.addMessage(messageText, 'customer');
+
+      // Send through chat service for any backend processing
       const currentUserId = getUserId();
-      const currentExternalId = getExternalId();
       
-      const response = await chatService.sendMessage(messageText, currentUserId, currentExternalId);
+      const response = await chatService.sendMessage(messageText, currentUserId, null);
 
       // Update message status
       setMessages(prev => prev.map(msg => 
@@ -202,6 +131,21 @@ const ChatBox = ({ user }) => {
           ? { ...msg, status: response?.status || 'sent' }
           : msg
       ));
+
+      // If this is a bot response scenario, add automated response
+      // This is a simple example - you can integrate with your actual chat API
+      if (response?.reply) {
+        const botMessage = {
+          id: Date.now() + 1,
+          text: response.reply,
+          sender: 'business',
+          timestamp: new Date().toISOString(),
+          status: 'sent'
+        };
+        
+        setMessages(prev => [...prev, botMessage]);
+        chatHistoryManager.addMessage(response.reply, 'agent');
+      }
 
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -228,17 +172,23 @@ const ChatBox = ({ user }) => {
   };
 
   const handleGetSupport = () => {
-    console.log('🎫 Redirecting to support page...');
     // eslint-disable-next-line no-console
-    console.log('📝 Current conversation history:', messages);
-    // eslint-disable-next-line no-console
-    console.log('🔍 DEBUG: Messages length:', messages.length);
+    console.log('🎫 Preparing to transfer to support page...');
     
-    // Conversation history is now stored in Sunshine API - no localStorage needed
-    // eslint-disable-next-line no-console
-    console.log('🌞 Conversation history available via Sunshine API');
+    // Prepare conversation for transfer
+    const transferData = chatHistoryManager.prepareTransfer();
     
-    // Redirect to support page
+    if (transferData) {
+      // eslint-disable-next-line no-console
+      console.log('📋 Conversation prepared for transfer:', transferData.metadata);
+      // eslint-disable-next-line no-console
+      console.log('🔢 Messages to transfer:', transferData.messages.length);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('⚠️ No conversation history to transfer');
+    }
+    
+    // Redirect to support page where Zendesk widget will load with prefilled history
     window.location.href = '/support';
   };
 
@@ -275,14 +225,14 @@ const ChatBox = ({ user }) => {
                 Please log in with Facebook to start chatting
               </div>
             )}
-            {!smoochInitialized && isAuthenticated && (
+            {!historyLoaded && isAuthenticated && (
               <div className="login-prompt">
-                Initializing secure conversation...
+                Loading chat history...
               </div>
             )}
-            {smoochInitialized && (
+            {historyLoaded && (
               <div className="polling-indicator">
-                <i className="fas fa-shield-alt"></i> Secure conversation ready
+                <i className="fas fa-comments"></i> Chat ready
               </div>
             )}
           </div>
