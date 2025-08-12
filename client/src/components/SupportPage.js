@@ -121,8 +121,16 @@ function SupportPage() {
       // Check if Zendesk widget key is configured
       const zendeskKey = process.env.REACT_APP_ZENDESK_WIDGET_KEY;
       
+      // eslint-disable-next-line no-console
+      console.log('🔑 Zendesk widget key status:', zendeskKey ? 'Found' : 'Missing');
+      
       if (!zendeskKey) {
-        throw new Error('Zendesk widget key not configured. Please set REACT_APP_ZENDESK_WIDGET_KEY environment variable.');
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ Zendesk widget key not configured - showing demo mode');
+        setError('Demo Mode: Zendesk widget key not configured. Please set REACT_APP_ZENDESK_WIDGET_KEY environment variable to enable live chat.');
+        setLoading(false);
+        setWidgetReady(false);
+        return;
       }
       
       // Load Zendesk widget script
@@ -148,35 +156,8 @@ function SupportPage() {
     }
   };
 
-  if (error) {
-    return (
-      <div className="support-page">
-        <div className="support-header">
-          <div className="header-content">
-            <button onClick={handleBackToWebsite} className="back-button">
-              ← Back to Website
-            </button>
-            <h1>Support Center</h1>
-          </div>
-        </div>
-        
-        <div className="support-content">
-          <div className="error-container">
-            <div className="error-illustration">
-              <div className="error-icon">
-                <i className="fas fa-exclamation-triangle"></i>
-              </div>
-              <h2>Unable to connect to support</h2>
-              <p>{error}</p>
-              <button onClick={() => window.location.reload()} className="retry-button">
-                <i className="fas fa-redo"></i> Try Again
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Show demo mode instead of full error for missing widget key
+  const isDemoMode = error && error.includes('Demo Mode');
 
   return (
     <div className="support-page">
@@ -205,6 +186,49 @@ function SupportPage() {
               </div>
               <h2>Connecting you to support...</h2>
               <p>Please wait while we prepare your chat session</p>
+            </div>
+          </div>
+        ) : isDemoMode ? (
+          <div className="demo-container">
+            <div className="demo-illustration">
+              <div className="demo-icon">
+                <i className="fas fa-tools"></i>
+              </div>
+              <h2>Support Center - Demo Mode</h2>
+              <p>This is how your support page will look once configured.</p>
+              
+              <div className="demo-widget" style={{
+                background: '#f8f9fa',
+                border: '2px dashed #dee2e6',
+                borderRadius: '8px',
+                padding: '30px',
+                margin: '20px 0',
+                textAlign: 'center'
+              }}>
+                <i className="fas fa-comment-dots" style={{ fontSize: '48px', color: '#6c757d', marginBottom: '15px' }}></i>
+                <h3 style={{ color: '#495057', marginBottom: '10px' }}>Zendesk Chat Widget</h3>
+                <p style={{ color: '#6c757d', marginBottom: '15px' }}>Your live chat widget will appear here once configured</p>
+                <div style={{ fontSize: '14px', color: '#868e96' }}>
+                  <p>✅ Conversation history transfer</p>
+                  <p>✅ Real-time customer support</p>
+                  <p>✅ Agent dashboard integration</p>
+                </div>
+              </div>
+              
+              <div className="config-steps" style={{
+                background: '#fff3cd',
+                border: '1px solid #ffeaa7',
+                borderRadius: '6px',
+                padding: '15px',
+                marginTop: '20px'
+              }}>
+                <h4 style={{ color: '#856404', marginBottom: '10px' }}>
+                  <i className="fas fa-info-circle"></i> Configuration Required
+                </h4>
+                <p style={{ color: '#856404', fontSize: '14px', margin: '0' }}>
+                  Add your Zendesk widget key to environment variables to enable live chat
+                </p>
+              </div>
             </div>
           </div>
         ) : (
