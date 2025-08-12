@@ -5,7 +5,6 @@ import './SupportPage.css';
 
 function SupportPage() {
   const [loading, setLoading] = useState(true);
-  const [widgetReady, setWidgetReady] = useState(false);
   const [error, setError] = useState(null);
 
   // Define setupZendeskIntegration first
@@ -14,7 +13,6 @@ function SupportPage() {
       // Initialize Zendesk integration with history transfer
       zendeskIntegration.init();
       
-      setWidgetReady(true);
       setError(null);
       setLoading(false);
       
@@ -76,7 +74,6 @@ function SupportPage() {
         console.warn('⚠️ Zendesk widget key not configured - showing demo mode');
         setError('Demo Mode: Zendesk widget key not configured. Please set REACT_APP_ZENDESK_WIDGET_KEY environment variable to enable live chat.');
         setLoading(false);
-        setWidgetReady(false);
         return;
       }
       
@@ -150,11 +147,7 @@ function SupportPage() {
     window.location.href = '/';
   };
 
-  const handleOpenChat = () => {
-    if (zendeskIntegration) {
-      zendeskIntegration.openWidget();
-    }
-  };
+
 
   // Show demo mode instead of full error for missing widget key
   const isDemoMode = error && error.includes('Demo Mode');
@@ -251,32 +244,26 @@ function SupportPage() {
                 <i className="fas fa-check-circle"></i>
               </div>
               <h2>Connected to Support</h2>
-              <p>Your support chat is ready! {widgetReady ? 'Click below to open the chat widget.' : 'The widget should load automatically.'}</p>
+              <p>Your support chat widget will open automatically with your conversation history.</p>
               
-              {widgetReady && (
-                <button 
-                  className="open-chat-button"
-                  onClick={handleOpenChat}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#2196F3',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    marginTop: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  <i className="fas fa-comments"></i>
-                  Open Support Chat
-                </button>
-              )}
+              <div style={{
+                background: '#e7f3ff',
+                border: '1px solid #b3d9ff',
+                borderRadius: '6px',
+                padding: '15px',
+                marginTop: '20px',
+                textAlign: 'left'
+              }}>
+                <h4 style={{ color: '#0066cc', marginBottom: '8px' }}>
+                  <i className="fas fa-info-circle"></i> What happens next:
+                </h4>
+                <ul style={{ color: '#0066cc', fontSize: '14px', margin: '0', paddingLeft: '20px' }}>
+                  <li>Your chat history has been transferred</li>
+                  <li>The widget opens automatically with your conversation</li>
+                  <li>You can continue chatting with a human agent</li>
+                  <li>All your previous messages are preserved</li>
+                </ul>
+              </div>
             </div>
           </div>
         )}

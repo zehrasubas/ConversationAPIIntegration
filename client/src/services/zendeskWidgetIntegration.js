@@ -129,11 +129,18 @@ class ZendeskHistoryInjector {
         // Set any available metadata
         this.setMetadata();
         
-        // Optional: Show notification to user
+        // Auto-open the widget immediately after prefilling
+        setTimeout(() => {
+          window.zE('messenger', 'open');
+          // eslint-disable-next-line no-console
+          console.log('✅ Zendesk widget auto-opened with conversation history');
+        }, 1000);
+        
+        // Show notification to user
         this.showTransferNotification();
       });
       
-      // Try to open immediately in case messenger is already ready
+      // Also try to open immediately in case messenger is already ready
       setTimeout(() => {
         window.zE('messenger', 'open');
       }, 500);
@@ -146,37 +153,58 @@ class ZendeskHistoryInjector {
   }
 
   /**
-   * Format conversation for display
+   * Format conversation for display with better summarization
    */
   formatConversation() {
     if (!this.conversation || !this.conversation.messages) {
       return '';
     }
 
-    let formatted = '━━━ Previous Conversation ━━━\n';
+    const customerMessages = this.conversation.messages.filter(m => m.sender === 'customer');
+    const agentMessages = this.conversation.messages.filter(m => m.sender === 'agent');
+    const totalMessages = this.conversation.messages.length;
+    
+    // Create a conversation summary
+    let formatted = '🔄 TRANSFERRED FROM WEBSITE CHAT\n';
+    formatted += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
     
     const startTime = new Date(this.conversation.metadata.startTime);
-    formatted += `Started: ${startTime.toLocaleTimeString()}\n`;
+    formatted += `📅 Chat Started: ${startTime.toLocaleDateString()} at ${startTime.toLocaleTimeString()}\n`;
+    formatted += `💬 Total Messages: ${totalMessages} (${customerMessages.length} from customer, ${agentMessages.length} from support)\n`;
     
     if (this.conversation.metadata.topic) {
-      formatted += `Topic: ${this.conversation.metadata.topic}\n`;
+      formatted += `📋 Topic: ${this.conversation.metadata.topic}\n`;
     }
     
-    formatted += '\nConversation History:\n';
-    formatted += '─────────────────────\n';
+    formatted += '\n📝 CONVERSATION HISTORY:\n';
+    formatted += '─────────────────────────────────\n\n';
     
-    this.conversation.messages.forEach(msg => {
+    this.conversation.messages.forEach((msg, index) => {
       const time = new Date(msg.timestamp).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit'
       });
       
-      const senderLabel = msg.sender === 'customer' ? 'You' : 'Support';
-      formatted += `[${time}] ${senderLabel}: ${msg.text}\n`;
+      const senderLabel = msg.sender === 'customer' ? '👤 Customer' : '🎧 Support Bot';
+      const messageNumber = index + 1;
+      
+      formatted += `${messageNumber}. [${time}] ${senderLabel}:\n`;
+      formatted += `   "${msg.text}"\n\n`;
     });
     
-    formatted += '━━━━━━━━━━━━━━━━━━━━━\n\n';
-    formatted += 'Please continue with your question below:\n';
+    // Add summary for agent
+    if (customerMessages.length > 0) {
+      const lastCustomerMessage = customerMessages[customerMessages.length - 1];
+      formatted += '🎯 SUMMARY FOR AGENT:\n';
+      formatted += '─────────────────────\n';
+      formatted += `• Customer was chatting on the website\n`;
+      formatted += `• Last customer message: "${lastCustomerMessage.text}"\n`;
+      formatted += `• Customer requested to speak with human support\n`;
+      formatted += `• Full conversation history is shown above\n\n`;
+    }
+    
+    formatted += '💡 Customer can continue their question below:\n';
+    formatted += '(This history is for agent reference - customer sees their conversation continues seamlessly)\n\n';
     
     return formatted;
   }
@@ -266,8 +294,12 @@ class ZendeskHistoryInjector {
    */
   openZendeskNormally() {
     if (typeof window.zE !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.log('📱 Opening Zendesk widget without conversation history');
       setTimeout(() => {
         window.zE('messenger', 'open');
+        // eslint-disable-next-line no-console
+        console.log('✅ Zendesk widget opened (no history to transfer)');
       }, 1000);
     }
   }
