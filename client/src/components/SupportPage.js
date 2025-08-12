@@ -8,6 +8,90 @@ function SupportPage() {
   const [widgetReady, setWidgetReady] = useState(false);
   const [error, setError] = useState(null);
 
+  // Define setupZendeskIntegration first
+  const setupZendeskIntegration = useCallback(() => {
+    try {
+      // Initialize Zendesk integration with history transfer
+      zendeskIntegration.init();
+      
+      setWidgetReady(true);
+      setError(null);
+      setLoading(false);
+      
+      // eslint-disable-next-line no-console
+      console.log('🎉 Zendesk widget ready!');
+      
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to setup Zendesk integration:', error);
+      setError('Failed to setup support widget: ' + error.message);
+      setLoading(false);
+    }
+  }, []);
+
+  // Define loadZendeskWidget second
+  const loadZendeskWidget = useCallback((widgetKey) => {
+    // Load Zendesk widget script if not already loaded
+    if (!window.zE) {
+      const script = document.createElement('script');
+      script.id = 'ze-snippet';
+      script.src = `https://static.zdassets.com/ekr/snippet.js?key=${widgetKey}`;
+      script.async = true;
+      
+      script.onload = () => {
+        // eslint-disable-next-line no-console
+        console.log('✅ Zendesk Widget script loaded');
+        setupZendeskIntegration();
+      };
+      
+      script.onerror = () => {
+        // eslint-disable-next-line no-console
+        console.error('❌ Failed to load Zendesk Widget script');
+        setError('Failed to load support widget');
+        setLoading(false);
+      };
+      
+      document.head.appendChild(script);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('✅ Zendesk Widget already loaded');
+      setupZendeskIntegration();
+    }
+  }, [setupZendeskIntegration]);
+
+  // Define initializeZendeskWidget third
+  const initializeZendeskWidget = useCallback(() => {
+    // eslint-disable-next-line no-console
+    console.log('🚀 Initializing Zendesk Web Widget...');
+    
+    try {
+      // Check if Zendesk widget key is configured
+      const zendeskKey = process.env.REACT_APP_ZENDESK_WIDGET_KEY;
+      
+      // eslint-disable-next-line no-console
+      console.log('🔑 Zendesk widget key status:', zendeskKey ? 'Found' : 'Missing');
+      
+      if (!zendeskKey) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ Zendesk widget key not configured - showing demo mode');
+        setError('Demo Mode: Zendesk widget key not configured. Please set REACT_APP_ZENDESK_WIDGET_KEY environment variable to enable live chat.');
+        setLoading(false);
+        setWidgetReady(false);
+        return;
+      }
+      
+      // Load Zendesk widget script
+      loadZendeskWidget(zendeskKey);
+      
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to initialize Zendesk widget:', error);
+      setError('Failed to initialize support widget: ' + error.message);
+      setLoading(false);
+    }
+  }, [loadZendeskWidget]);
+
+  // Initialize on component mount
   useEffect(() => {
     const clearPreviousWidgetData = () => {
       try {
@@ -58,92 +142,8 @@ function SupportPage() {
     }
     
     // Initialize Zendesk widget integration
-    // eslint-disable-next-line no-use-before-define
     initializeZendeskWidget();
   }, [initializeZendeskWidget]);
-
-  const loadZendeskWidget = useCallback((widgetKey) => {
-    // Load Zendesk widget script if not already loaded
-    if (!window.zE) {
-      const script = document.createElement('script');
-      script.id = 'ze-snippet';
-      script.src = `https://static.zdassets.com/ekr/snippet.js?key=${widgetKey}`;
-      script.async = true;
-      
-      script.onload = () => {
-        // eslint-disable-next-line no-console
-        console.log('✅ Zendesk Widget script loaded');
-        // eslint-disable-next-line no-use-before-define
-        setupZendeskIntegration();
-      };
-      
-      script.onerror = () => {
-        // eslint-disable-next-line no-console
-        console.error('❌ Failed to load Zendesk Widget script');
-        setError('Failed to load support widget');
-        setLoading(false);
-      };
-      
-      document.head.appendChild(script);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('✅ Zendesk Widget already loaded');
-      // eslint-disable-next-line no-use-before-define
-      setupZendeskIntegration();
-    }
-  }, [setupZendeskIntegration]);
-  
-  const setupZendeskIntegration = useCallback(() => {
-    try {
-      // Initialize Zendesk integration with history transfer
-      zendeskIntegration.init();
-      
-      setWidgetReady(true);
-      setError(null);
-      setLoading(false);
-      
-      // eslint-disable-next-line no-console
-      console.log('🎉 Zendesk widget ready!');
-      
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Failed to setup Zendesk integration:', error);
-      setError('Failed to setup support widget: ' + error.message);
-      setLoading(false);
-    }
-  }, []);
-  
-  const initializeZendeskWidget = useCallback(() => {
-    // eslint-disable-next-line no-console
-    console.log('🚀 Initializing Zendesk Web Widget...');
-    
-    try {
-      // Check if Zendesk widget key is configured
-      const zendeskKey = process.env.REACT_APP_ZENDESK_WIDGET_KEY;
-      
-      // eslint-disable-next-line no-console
-      console.log('🔑 Zendesk widget key status:', zendeskKey ? 'Found' : 'Missing');
-      
-      if (!zendeskKey) {
-        // eslint-disable-next-line no-console
-        console.warn('⚠️ Zendesk widget key not configured - showing demo mode');
-        setError('Demo Mode: Zendesk widget key not configured. Please set REACT_APP_ZENDESK_WIDGET_KEY environment variable to enable live chat.');
-        setLoading(false);
-        setWidgetReady(false);
-        return;
-      }
-      
-      // Load Zendesk widget script
-      loadZendeskWidget(zendeskKey);
-      
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Failed to initialize Zendesk widget:', error);
-      setError('Failed to initialize support widget: ' + error.message);
-      setLoading(false);
-    }
-  }, [loadZendeskWidget]);
-
 
   const handleBackToWebsite = () => {
     localStorage.removeItem('conversationHistory');
@@ -231,6 +231,19 @@ function SupportPage() {
               </div>
             </div>
           </div>
+        ) : error ? (
+          <div className="error-container">
+            <div className="error-illustration">
+              <div className="error-icon">
+                <i className="fas fa-exclamation-triangle"></i>
+              </div>
+              <h2>Unable to connect to support</h2>
+              <p>{error}</p>
+              <button onClick={() => window.location.reload()} className="retry-button">
+                <i className="fas fa-redo"></i> Try Again
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="success-container">
             <div className="success-illustration">
@@ -274,6 +287,6 @@ function SupportPage() {
       </div>
     </div>
   );
-};
+}
 
-export default SupportPage; 
+export default SupportPage;
