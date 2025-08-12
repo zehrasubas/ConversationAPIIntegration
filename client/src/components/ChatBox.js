@@ -129,7 +129,7 @@ const ChatBox = ({ user }) => {
       // Update message status
       setMessages(prev => prev.map(msg => 
         msg.id === newMessage.id 
-          ? { ...msg, status: response?.status || 'sent' }
+          ? { ...msg, status: response?.status || 'sent' } 
           : msg
       ));
 
