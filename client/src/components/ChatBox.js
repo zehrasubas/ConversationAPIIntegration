@@ -30,6 +30,7 @@ const ChatBox = ({ user }) => {
   }, []);
 
   // Generate user display name for chat history
+  // eslint-disable-next-line no-unused-vars
   const getUserDisplayName = useCallback(() => {
     if (user?.name) {
       return user.name;

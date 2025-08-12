@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+/* eslint-disable no-use-before-define */
+import React, { useEffect, useState, useCallback } from 'react';
 import zendeskIntegration from '../services/zendeskWidgetIntegration';
 import './SupportPage.css';
 
@@ -57,10 +58,62 @@ function SupportPage() {
     }
     
     // Initialize Zendesk widget integration
+    // eslint-disable-next-line no-use-before-define
     initializeZendeskWidget();
-  }, []);
+  }, [initializeZendeskWidget]);
 
-  const initializeZendeskWidget = () => {
+  const loadZendeskWidget = useCallback((widgetKey) => {
+    // Load Zendesk widget script if not already loaded
+    if (!window.zE) {
+      const script = document.createElement('script');
+      script.id = 'ze-snippet';
+      script.src = `https://static.zdassets.com/ekr/snippet.js?key=${widgetKey}`;
+      script.async = true;
+      
+      script.onload = () => {
+        // eslint-disable-next-line no-console
+        console.log('✅ Zendesk Widget script loaded');
+        // eslint-disable-next-line no-use-before-define
+        setupZendeskIntegration();
+      };
+      
+      script.onerror = () => {
+        // eslint-disable-next-line no-console
+        console.error('❌ Failed to load Zendesk Widget script');
+        setError('Failed to load support widget');
+        setLoading(false);
+      };
+      
+      document.head.appendChild(script);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('✅ Zendesk Widget already loaded');
+      // eslint-disable-next-line no-use-before-define
+      setupZendeskIntegration();
+    }
+  }, [setupZendeskIntegration]);
+  
+  const setupZendeskIntegration = useCallback(() => {
+    try {
+      // Initialize Zendesk integration with history transfer
+      zendeskIntegration.init();
+      
+      setWidgetReady(true);
+      setError(null);
+      setLoading(false);
+      
+      // eslint-disable-next-line no-console
+      console.log('🎉 Zendesk widget ready!');
+      
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to setup Zendesk integration:', error);
+      setError('Failed to setup support widget: ' + error.message);
+      setLoading(false);
+    }
+  }, []);
+  
+  const initializeZendeskWidget = useCallback(() => {
     // eslint-disable-next-line no-console
     console.log('🚀 Initializing Zendesk Web Widget...');
     
@@ -81,56 +134,7 @@ function SupportPage() {
       setError('Failed to initialize support widget: ' + error.message);
       setLoading(false);
     }
-  };
-  
-  const loadZendeskWidget = (widgetKey) => {
-    // Load Zendesk widget script if not already loaded
-    if (!window.zE) {
-      const script = document.createElement('script');
-      script.id = 'ze-snippet';
-      script.src = `https://static.zdassets.com/ekr/snippet.js?key=${widgetKey}`;
-      script.async = true;
-      
-      script.onload = () => {
-        // eslint-disable-next-line no-console
-        console.log('✅ Zendesk Widget script loaded');
-        setupZendeskIntegration();
-      };
-      
-      script.onerror = () => {
-        // eslint-disable-next-line no-console
-        console.error('❌ Failed to load Zendesk Widget script');
-        setError('Failed to load support widget');
-        setLoading(false);
-      };
-      
-      document.head.appendChild(script);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('✅ Zendesk Widget already loaded');
-      setupZendeskIntegration();
-    }
-  };
-  
-  const setupZendeskIntegration = () => {
-    try {
-      // Initialize Zendesk integration with history transfer
-      zendeskIntegration.init();
-      
-      setWidgetReady(true);
-      setError(null);
-      setLoading(false);
-      
-      // eslint-disable-next-line no-console
-      console.log('🎉 Zendesk widget ready!');
-      
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Failed to setup Zendesk integration:', error);
-      setError('Failed to setup support widget: ' + error.message);
-      setLoading(false);
-    }
-  };
+  }, [loadZendeskWidget]);
 
 
   const handleBackToWebsite = () => {
