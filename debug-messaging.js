@@ -7,6 +7,32 @@
 
 const https = require('https');
 const querystring = require('querystring');
+const path = require('path');
+const fs = require('fs');
+
+// Load environment variables from .env file
+function loadEnvFile() {
+  const envPath = path.join(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      line = line.trim();
+      if (line && !line.startsWith('#') && line.includes('=')) {
+        const [key, ...values] = line.split('=');
+        const value = values.join('=');
+        if (key && value && !process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    });
+    console.log('✅ Loaded environment variables from .env file');
+  } else {
+    console.log('⚠️  No .env file found, using system environment variables only');
+  }
+}
+
+// Initialize environment
+loadEnvFile();
 
 // Color codes for console output
 const colors = {
