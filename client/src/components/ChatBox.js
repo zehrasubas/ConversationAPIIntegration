@@ -175,7 +175,7 @@ const ChatBox = ({ user }) => {
       // eslint-disable-next-line no-console
       console.error('❌ Error fetching new messages:', error);
     }
-  }, [isAuthenticated, isOpen, getUserId, messages, chatService]);
+  }, [isAuthenticated, isOpen, getUserId, messages]);
 
   // Set up message polling
   useEffect(() => {
