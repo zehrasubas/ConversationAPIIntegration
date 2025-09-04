@@ -19,7 +19,7 @@ const ChatBox = ({ user }) => {
       const existingMessages = chatHistoryManager.getAllMessages();
       setMessages(existingMessages);
       setHistoryLoaded(true);
-      
+
       // eslint-disable-next-line no-console
       console.log('📖 Chat history initialized:', existingMessages.length, 'messages loaded');
     } catch (error) {
@@ -38,13 +38,30 @@ const ChatBox = ({ user }) => {
     return 'You';
   }, [user]);
 
+  // Get or create PSID for messaging
+  const [userPSID, setUserPSID] = useState(null);
+  const [psidLoading, setPsidLoading] = useState(false);
+
+  // Get Facebook User ID
+  const getFacebookUserId = useCallback(() => {
+    if (user?.id) {
+      return user.id;
+    }
+    return null;
+  }, [user]);
+
   // Get or create user ID (Facebook ID or session-based ID)
   const getUserId = useCallback(() => {
+    // If we have a PSID, use that for messaging
+    if (userPSID) {
+      return userPSID;
+    }
+
     // If user is logged in with Facebook, use their ID
     if (user?.id) {
       return user.id;
     }
-    
+
     // Otherwise, get or create session-based ID
     let sessionUserId = sessionStorage.getItem('chatUserId');
     if (!sessionUserId) {
@@ -54,10 +71,145 @@ const ChatBox = ({ user }) => {
       console.log('🆔 Generated new session user ID:', sessionUserId);
     }
     return sessionUserId;
-  }, [user]);
+  }, [user, userPSID]);
+
+  // Exchange Facebook User ID for PSID
+  const exchangeForPSID = useCallback(async () => {
+    const facebookUserId = getFacebookUserId();
+    if (!facebookUserId || psidLoading) return;
+
+    setPsidLoading(true);
+    try {
+      // eslint-disable-next-line no-console
+      console.log('🔄 Exchanging Facebook User ID for PSID:', facebookUserId);
+
+      const response = await fetch('/api/exchange-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          facebookUserId: facebookUserId
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // eslint-disable-next-line no-console
+        console.log('✅ Successfully obtained PSID:', data.psid);
+        setUserPSID(data.psid);
+
+        // Store PSID for future use
+        sessionStorage.setItem('userPSID', data.psid);
+      } else {
+        // eslint-disable-next-line no-console
+        console.error('❌ Failed to get PSID:', data);
+        // Continue without PSID - messages will be local only
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ PSID exchange error:', error);
+    } finally {
+      setPsidLoading(false);
+    }
+  }, [getFacebookUserId, psidLoading]);
 
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
+
+  // Message polling state
+  const [pollingActive, setPollingActive] = useState(false);
+  const pollingIntervalRef = useRef(null);
+
+  // Load stored PSID on component mount
+  useEffect(() => {
+    const storedPSID = sessionStorage.getItem('userPSID');
+    if (storedPSID) {
+      setUserPSID(storedPSID);
+    }
+  }, []);
+
+  // Exchange for PSID when user logs in
+  useEffect(() => {
+    if (user?.id && !userPSID && !psidLoading) {
+      exchangeForPSID();
+    }
+  }, [user, userPSID, psidLoading, exchangeForPSID]);
+
+  // Fetch new messages from API
+  const fetchNewMessages = useCallback(async () => {
+    if (!isAuthenticated || !isOpen) return;
+
+    const userId = getUserId();
+    if (!userId) return;
+
+    try {
+      // Get last message timestamp for polling
+      const lastMessage = messages[messages.length - 1];
+      const since = lastMessage ? lastMessage.timestamp : null;
+
+      const response = await chatService.fetchNewMessages(userId, since);
+
+      if (response.messages && response.messages.length > 0) {
+        // Filter out messages we already have
+        const existingIds = new Set(messages.map(m => m.id));
+        const newMessages = response.messages.filter(msg => !existingIds.has(msg.id));
+
+        if (newMessages.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log('📨 Received new messages:', newMessages.length);
+
+          setMessages(prev => [...prev, ...newMessages]);
+
+          // Add to chat history manager
+          newMessages.forEach(msg => {
+            chatHistoryManager.addMessage(
+              msg.text,
+              msg.sender === 'user' ? 'customer' : 'agent'
+            );
+          });
+        }
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Error fetching new messages:', error);
+    }
+  }, [isAuthenticated, isOpen, getUserId, messages, chatService]);
+
+  // Set up message polling
+  useEffect(() => {
+    if (isAuthenticated && isOpen && !pollingActive) {
+      setPollingActive(true);
+
+      // Start polling for new messages every 3 seconds
+      pollingIntervalRef.current = setInterval(() => {
+        fetchNewMessages();
+      }, 3000);
+
+      // eslint-disable-next-line no-console
+      console.log('🔄 Started message polling');
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+        setPollingActive(false);
+        // eslint-disable-next-line no-console
+        console.log('⏹️ Stopped message polling');
+      }
+    };
+  }, [isAuthenticated, isOpen, pollingActive, fetchNewMessages]);
+
+  // Stop polling when chat is closed
+  useEffect(() => {
+    if (!isOpen && pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+      setPollingActive(false);
+    }
+  }, [isOpen]);
 
   // Initialize chat history when component mounts (not on support page)
   useEffect(() => {
@@ -72,10 +224,10 @@ const ChatBox = ({ user }) => {
 
         // eslint-disable-next-line no-console
         console.log('📜 Setting up chat history manager');
-        
+
         // Initialize chat history
         initializeChatHistory();
-        
+
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('❌ Error during chat history setup:', error);
@@ -123,13 +275,13 @@ const ChatBox = ({ user }) => {
 
       // Send through chat service for any backend processing
       const currentUserId = getUserId();
-      
+
       const response = await chatService.sendMessage(messageText, currentUserId, null);
 
       // Update message status
-      setMessages(prev => prev.map(msg => 
-        msg.id === newMessage.id 
-          ? { ...msg, status: response?.status || 'sent' } 
+      setMessages(prev => prev.map(msg =>
+        msg.id === newMessage.id
+          ? { ...msg, status: response?.status || 'sent' }
           : msg
       ));
 
@@ -143,7 +295,7 @@ const ChatBox = ({ user }) => {
           timestamp: new Date().toISOString(),
           status: 'sent'
         };
-        
+
         setMessages(prev => [...prev, botMessage]);
         chatHistoryManager.addMessage(response.reply, 'agent');
       }
@@ -151,9 +303,9 @@ const ChatBox = ({ user }) => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to send message:', error);
-      
+
       // Update message status to show error
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.text === messageText
           ? { ...msg, status: 'failed', error: true }
           : msg
@@ -166,42 +318,42 @@ const ChatBox = ({ user }) => {
   };
 
   const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
   const handleGetSupport = () => {
     // eslint-disable-next-line no-console
     console.log('🎫 Preparing to transfer to support page...');
-    
+
     // First, let's check what's in the chat history manager
     const allMessages = chatHistoryManager.getAllMessages();
     const currentConversation = chatHistoryManager.getFormattedConversation();
-    
+
     // eslint-disable-next-line no-console
     console.log('📊 Debug - Current messages in UI:', messages.length);
     // eslint-disable-next-line no-console
     console.log('📊 Debug - Messages in history manager:', allMessages.length);
     // eslint-disable-next-line no-console
     console.log('📊 Debug - Current conversation data:', currentConversation);
-    
+
     // If no conversation exists, create a sample one for testing
     if (!currentConversation && messages.length === 0) {
       // eslint-disable-next-line no-console
       console.log('⚠️ No conversation found, creating test conversation...');
-      
+
       // Add some test messages
       chatHistoryManager.addMessage('Hi, I need help with my order', 'customer');
       chatHistoryManager.addMessage('Hello! I\'d be happy to help you with your order. What seems to be the issue?', 'agent');
       chatHistoryManager.addMessage('My order #12345 hasn\'t arrived yet and it was supposed to be here yesterday', 'customer');
       chatHistoryManager.addMessage('I understand your concern. Let me transfer you to our support team for immediate assistance.', 'agent');
     }
-    
+
     // Prepare conversation for transfer
     const transferData = chatHistoryManager.prepareTransfer();
-    
+
     if (transferData) {
       // eslint-disable-next-line no-console
       console.log('📋 Conversation prepared for transfer:', transferData.metadata);
@@ -213,7 +365,7 @@ const ChatBox = ({ user }) => {
       // eslint-disable-next-line no-console
       console.log('⚠️ No conversation history to transfer');
     }
-    
+
     // Redirect to support page where Zendesk widget will load with prefilled history
     window.location.href = '/support';
   };
@@ -221,7 +373,7 @@ const ChatBox = ({ user }) => {
   return (
     <div className="chat-container">
       {/* Chat Toggle Button */}
-      <button 
+      <button
         className="chat-toggle-button"
         onClick={toggleChat}
       >
@@ -236,7 +388,7 @@ const ChatBox = ({ user }) => {
             <div className="chat-header-content">
               <h3>Chat with Us</h3>
               {isAuthenticated && messages.length > 0 && (
-                <button 
+                <button
                   className="support-button"
                   onClick={handleGetSupport}
                   title="Get human support"
@@ -275,7 +427,7 @@ const ChatBox = ({ user }) => {
                   </div>
                 )}
                 {messages.map(message => (
-                  <div 
+                  <div
                     key={message.id}
                     className={`message ${message.sender === 'user' ? 'user-message' : 'business-message'}`}
                   >
@@ -305,8 +457,8 @@ const ChatBox = ({ user }) => {
               className="chat-input"
               disabled={!isAuthenticated}
             />
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="send-button"
               disabled={!inputMessage.trim() || !isAuthenticated}
             >
@@ -319,4 +471,4 @@ const ChatBox = ({ user }) => {
   );
 };
 
-export default ChatBox; 
+export default ChatBox;
