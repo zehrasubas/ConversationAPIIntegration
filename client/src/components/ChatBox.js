@@ -43,13 +43,6 @@ const ChatBox = ({ user }) => {
   const [psidLoading, setPsidLoading] = useState(false);
   const [sseConnection, setSseConnection] = useState(null);
 
-  // Get Facebook User ID
-  const getFacebookUserId = useCallback(() => {
-    if (user?.id) {
-      return user.id;
-    }
-    return null;
-  }, [user]);
 
   // Get or create user ID (Facebook ID or session-based ID)
   const getUserId = useCallback(() => {
