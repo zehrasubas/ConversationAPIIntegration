@@ -98,6 +98,7 @@ const ChatBox = ({ user }) => {
         // eslint-disable-next-line no-console
         console.log('📝 No conversations found. User needs to message the Facebook Page first.');
         console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
+        console.log('🔧 Temporary: You can manually set a PSID by running: sessionStorage.setItem("userPSID", "YOUR_PSID")');
         // Don't set any fallback PSID - wait for real one
       }
     } catch (error) {
@@ -122,11 +123,15 @@ const ChatBox = ({ user }) => {
   }, []);
 
   // Exchange for PSID when user logs in
+  // Prevent endless PSID fetch attempts
+  const [psidFetchAttempted, setPsidFetchAttempted] = useState(false);
+  
   useEffect(() => {
-    if (user?.id && !userPSID && !psidLoading) {
+    if (user?.id && !userPSID && !psidLoading && !psidFetchAttempted) {
+      setPsidFetchAttempted(true);
       fetchPSIDFromConversations();
     }
-  }, [user, userPSID, psidLoading, fetchPSIDFromConversations]);
+  }, [user, userPSID, psidLoading, psidFetchAttempted, fetchPSIDFromConversations]);
 
 
   // Set up SSE connection for real-time messages
