@@ -74,47 +74,46 @@ const ChatBox = ({ user }) => {
     return sessionUserId;
   }, [user, userPSID]);
 
-  // Exchange Facebook User ID for PSID
-  const exchangeForPSID = useCallback(async () => {
-    const facebookUserId = getFacebookUserId();
-    if (!facebookUserId || psidLoading) return;
+  // Get PSID from conversations API instead of user ID exchange
+  const fetchPSIDFromConversations = useCallback(async () => {
+    if (psidLoading) return;
 
     setPsidLoading(true);
     try {
       // eslint-disable-next-line no-console
-      console.log('🔄 Exchanging Facebook User ID for PSID:', facebookUserId);
+      console.log('🔍 Fetching PSID from conversations API...');
 
-      const response = await fetch('/api/exchange-token', {
-        method: 'POST',
+      const response = await fetch('/api/conversations/recent-psids', {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          facebookUserId: facebookUserId
-        })
+        }
       });
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
+      if (response.ok && data.success && data.psids?.length > 0) {
+        // Get the most recent PSID from webhook messages
+        const mostRecentPsid = data.psids[0];
+        const psid = mostRecentPsid.psid;
+        
         // eslint-disable-next-line no-console
-        console.log('✅ Successfully obtained PSID:', data.psid);
-        setUserPSID(data.psid);
-
-        // Store PSID for future use
-        sessionStorage.setItem('userPSID', data.psid);
+        console.log('✅ Found PSID from conversations:', psid);
+        setUserPSID(psid);
+        sessionStorage.setItem('userPSID', psid);
       } else {
         // eslint-disable-next-line no-console
-        console.error('❌ Failed to get PSID:', data);
-        // Continue without PSID - messages will be local only
+        console.log('📝 No conversations found. User needs to message the Facebook Page first.');
+        console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
+        // Don't set any fallback PSID - wait for real one
       }
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('❌ PSID exchange error:', error);
+      console.error('❌ Error fetching conversations:', error);
     } finally {
       setPsidLoading(false);
     }
-  }, [getFacebookUserId, psidLoading]);
+  }, [psidLoading]);
 
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
@@ -132,9 +131,9 @@ const ChatBox = ({ user }) => {
   // Exchange for PSID when user logs in
   useEffect(() => {
     if (user?.id && !userPSID && !psidLoading) {
-      exchangeForPSID();
+      fetchPSIDFromConversations();
     }
-  }, [user, userPSID, psidLoading, exchangeForPSID]);
+  }, [user, userPSID, psidLoading, fetchPSIDFromConversations]);
 
 
   // Set up SSE connection for real-time messages
