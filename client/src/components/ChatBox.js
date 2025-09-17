@@ -67,16 +67,16 @@ const ChatBox = ({ user }) => {
     return sessionUserId;
   }, [user, userPSID]);
 
-  // Get PSID from conversations API instead of user ID exchange
-  const fetchPSIDFromConversations = useCallback(async () => {
+  // Get PSID directly from environment variables
+  const fetchPSIDFromEnvironment = useCallback(async () => {
     if (psidLoading) return;
 
     setPsidLoading(true);
     try {
       // eslint-disable-next-line no-console
-      console.log('🔍 Fetching PSID from conversations API...');
+      console.log('🔍 Getting PSID directly from environment variables...');
 
-      const response = await fetch('/api/psid/recent', {
+      const response = await fetch('/api/psid/get-env', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -86,57 +86,23 @@ const ChatBox = ({ user }) => {
       const data = await response.json();
 
       if (response.ok && data.success && data.psid) {
-        // Get the PSID from most recent webhook interaction
-        const psid = data.psid;
-        
         // eslint-disable-next-line no-console
-        console.log('✅ Found PSID from conversations:', psid);
-        setUserPSID(psid);
-        sessionStorage.setItem('userPSID', psid);
+        console.log('✅ Got PSID from environment variables:', data.psid);
+        setUserPSID(data.psid);
+        sessionStorage.setItem('userPSID', data.psid);
       } else {
         // eslint-disable-next-line no-console
-        console.log('📝 No conversations found via API. Checking for known PSID...');
-        
-        // Check for known user mapping from environment variables
-        const facebookUserId = user?.id;
-        console.log('🔍 Checking for known PSID mapping for user:', facebookUserId);
-        
-        // Try to get PSID mapping from server
-        try {
-          console.log('🔄 Attempting PSID mapping for user:', facebookUserId);
-          
-          const mappingResponse = await fetch('/api/psid/mapping', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ facebookUserId })
-          });
-          
-          console.log('📥 Mapping response status:', mappingResponse.status);
-          
-          const mappingData = await mappingResponse.json();
-          console.log('📊 Mapping response data:', mappingData);
-          
-          if (mappingResponse.ok && mappingData.success && mappingData.psid) {
-            console.log('✅ Found PSID mapping for this user:', mappingData.psid);
-            setUserPSID(mappingData.psid);
-            sessionStorage.setItem('userPSID', mappingData.psid);
-          } else {
-            console.log('❌ PSID mapping failed or no mapping found');
-            console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
-            console.log('🔧 Temporary: You can manually set a PSID by running: sessionStorage.setItem("userPSID", "YOUR_PSID")');
-          }
-        } catch (error) {
-          console.error('❌ Error checking PSID mapping:', error);
-          console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
-        }
+        console.log('❌ No PSID configured in environment variables');
+        console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
+        console.log('🔧 Temporary: You can manually set a PSID by running: sessionStorage.setItem("userPSID", "YOUR_PSID")');
       }
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('❌ Error fetching conversations:', error);
+      console.error('❌ Error getting PSID from environment:', error);
     } finally {
       setPsidLoading(false);
     }
-  }, [psidLoading, user]);
+  }, [psidLoading]);
 
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
@@ -158,9 +124,9 @@ const ChatBox = ({ user }) => {
   useEffect(() => {
     if (user?.id && !userPSID && !psidLoading && !psidFetchAttempted) {
       setPsidFetchAttempted(true);
-      fetchPSIDFromConversations();
+      fetchPSIDFromEnvironment();
     }
-  }, [user, userPSID, psidLoading, psidFetchAttempted, fetchPSIDFromConversations]);
+  }, [user, userPSID, psidLoading, psidFetchAttempted, fetchPSIDFromEnvironment]);
 
 
   // Set up SSE connection for real-time messages
