@@ -130,7 +130,7 @@ const ChatBox = ({ user }) => {
     } finally {
       setPsidLoading(false);
     }
-  }, [psidLoading]);
+  }, [psidLoading, user]);
 
   // Check if user is logged in (basic auth, not requiring PSID)
   const isAuthenticated = Boolean(user?.id);
