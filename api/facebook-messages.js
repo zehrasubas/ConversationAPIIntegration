@@ -1,4 +1,6 @@
 // Get messages directly from Facebook API for prototype
+const fileStorage = require('./shared/fileStorage');
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
