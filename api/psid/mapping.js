@@ -15,6 +15,10 @@ export default async function handler(req, res) {
     }
 
     console.log('🔍 Looking up PSID mapping for Facebook User ID:', facebookUserId);
+    console.log('🔧 Environment variables check:', {
+      hasKnownUserId: !!process.env.KNOWN_FACEBOOK_USER_ID,
+      hasKnownPSID: !!process.env.KNOWN_USER_PSID
+    });
 
     // Get known user mappings from environment variables
     const knownUserId = process.env.KNOWN_FACEBOOK_USER_ID;
