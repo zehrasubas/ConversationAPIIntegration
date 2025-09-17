@@ -14,13 +14,20 @@ export default async function handler(req, res) {
 
     console.log('🔍 Getting messages for PSID:', psid);
 
-    // Get real messages from webhook via simple storage
-    const simpleStorage = require('./shared/simpleStorage');
-    
+    // Get real messages from webhook via file storage
     try {
-      const messages = simpleStorage.getMessages(psid);
+      const messages = fileStorage.getMessages(psid);
       console.log(`📚 Found ${messages.length} real webhook messages for PSID ${psid}`);
-      console.log(`📊 All PSIDs with messages: ${simpleStorage.getAllPSIDs()}`);
+      console.log(`📊 All PSIDs with messages: ${fileStorage.getAllPSIDs()}`);
+      
+      // ALSO check global variable for immediate access
+      if (global.lastWebhookMessage && global.lastWebhookMessage.psid === psid) {
+        const messageAge = Date.now() - global.lastWebhookMessage.timestamp;
+        if (messageAge < 300000) { // 5 minutes
+          console.log('📱 Found recent message in global variable!');
+          messages.push(global.lastWebhookMessage.message);
+        }
+      }
       
       res.json({
         success: true,
@@ -30,12 +37,12 @@ export default async function handler(req, res) {
       });
       
     } catch (error) {
-      console.error('❌ Error accessing simple storage:', error);
+      console.error('❌ Error accessing file storage:', error);
       res.json({
         success: true,
         messages: [],
         timestamp: new Date().toISOString(),
-        note: 'Error accessing webhook storage'
+        note: 'Error accessing webhook file storage'
       });
     }
 
