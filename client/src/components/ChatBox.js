@@ -103,19 +103,25 @@ const ChatBox = ({ user }) => {
         
         // Try to get PSID mapping from server
         try {
+          console.log('🔄 Attempting PSID mapping for user:', facebookUserId);
+          
           const mappingResponse = await fetch('/api/psid/mapping', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ facebookUserId })
           });
           
+          console.log('📥 Mapping response status:', mappingResponse.status);
+          
           const mappingData = await mappingResponse.json();
+          console.log('📊 Mapping response data:', mappingData);
           
           if (mappingResponse.ok && mappingData.success && mappingData.psid) {
             console.log('✅ Found PSID mapping for this user:', mappingData.psid);
             setUserPSID(mappingData.psid);
             sessionStorage.setItem('userPSID', mappingData.psid);
           } else {
+            console.log('❌ PSID mapping failed or no mapping found');
             console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
             console.log('🔧 Temporary: You can manually set a PSID by running: sessionStorage.setItem("userPSID", "YOUR_PSID")');
           }
