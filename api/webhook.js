@@ -154,9 +154,18 @@ export default async function handler(req, res) {
                 console.log('🔄 Storing for sender ID:', senderId);
                 
                 // Store in local message store (existing functionality)
-                const storedMessage = messageStore.addMessage(senderId, incomingMessage);
-                console.log('✅ Successfully stored message in local store:', JSON.stringify(storedMessage, null, 2));
-                console.log('🔍 Current message count for user:', messageStore.getMessages(senderId).length);
+                console.log('🔄 About to store message for PSID:', senderId);
+                console.log('🔄 Message to store:', JSON.stringify(incomingMessage, null, 2));
+                
+                try {
+                  const storedMessage = messageStore.addMessage(senderId, incomingMessage);
+                  console.log('✅ Successfully stored message in local store:', JSON.stringify(storedMessage, null, 2));
+                  console.log('🔍 Current message count for user:', messageStore.getMessages(senderId).length);
+                  console.log('🔍 All stored user IDs:', Object.keys(messageStore.messages || {}));
+                } catch (storeError) {
+                  console.error('❌ Error storing message in messageStore:', storeError);
+                  console.error('❌ Store error stack:', storeError.stack);
+                }
 
                 // Note: Sunshine Conversations integration removed
                 // Messages are now handled via local chat history and Zendesk Web Widget prefill

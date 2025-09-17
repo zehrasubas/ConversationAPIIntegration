@@ -13,8 +13,11 @@ class MessageStore {
   }
 
   addMessage(userId, message) {
+    console.log('📝 MessageStore.addMessage called with:', { userId, message });
+    
     if (!this.messages[userId]) {
       this.messages[userId] = [];
+      console.log('📂 Created new message array for user:', userId);
     }
     
     // Ensure message has required fields
@@ -26,7 +29,9 @@ class MessageStore {
       ...message // spread any additional fields
     };
     
+    console.log('📝 Formatted message:', formattedMessage);
     this.messages[userId].push(formattedMessage);
+    console.log('📊 Messages for user', userId, ':', this.messages[userId].length);
     
     // Keep only last 100 messages per user to prevent memory issues
     if (this.messages[userId].length > 100) {

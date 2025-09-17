@@ -76,7 +76,7 @@ const ChatBox = ({ user }) => {
       // eslint-disable-next-line no-console
       console.log('🔍 Fetching PSID from conversations API...');
 
-      const response = await fetch('/api/conversations/recent-psids', {
+      const response = await fetch('/api/psid/recent', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -85,10 +85,9 @@ const ChatBox = ({ user }) => {
 
       const data = await response.json();
 
-      if (response.ok && data.success && data.psids?.length > 0) {
-        // Get the most recent PSID from webhook messages
-        const mostRecentPsid = data.psids[0];
-        const psid = mostRecentPsid.psid;
+      if (response.ok && data.success && data.psid) {
+        // Get the PSID from most recent webhook interaction
+        const psid = data.psid;
         
         // eslint-disable-next-line no-console
         console.log('✅ Found PSID from conversations:', psid);
