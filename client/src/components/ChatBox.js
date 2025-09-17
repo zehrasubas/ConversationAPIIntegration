@@ -41,7 +41,6 @@ const ChatBox = ({ user }) => {
   // Get or create PSID for messaging
   const [userPSID, setUserPSID] = useState(null);
   const [psidLoading, setPsidLoading] = useState(false);
-  const [sseConnection, setSseConnection] = useState(null);
 
 
   // Get or create user ID (Facebook ID or session-based ID)
@@ -129,59 +128,48 @@ const ChatBox = ({ user }) => {
   }, [user, userPSID, psidLoading, psidFetchAttempted, fetchPSIDFromEnvironment]);
 
 
-  // Set up SSE connection for real-time messages
+  // Simple polling for Facebook messages - no complex SSE needed for prototype
   useEffect(() => {
     if (!isAuthenticated || !isOpen || !userPSID) return;
 
     // eslint-disable-next-line no-console
-    console.log('🌊 Setting up SSE connection for PSID:', userPSID);
+    console.log('🔄 Setting up simple polling for PSID:', userPSID);
 
-    // Connect to message stream
-    const eventSource = chatService.connectToMessageStream(
-      userPSID,
-      (newMessage) => {
-        // eslint-disable-next-line no-console
-        console.log('📨 Received new message via SSE:', newMessage);
+    const pollForMessages = async () => {
+      try {
+        const response = await fetch(`/api/facebook-messages?psid=${userPSID}`);
+        const data = await response.json();
         
-        // Add message to chat if it's not already there
-        setMessages(prev => {
-          const exists = prev.some(msg => msg.id === newMessage.id);
-          if (!exists) {
-            return [...prev, newMessage];
+        if (response.ok && data.messages && data.messages.length > 0) {
+          // Check for new messages we don't have yet
+          const currentMessageIds = new Set(messages.map(m => m.id));
+          const newMessages = data.messages.filter(msg => !currentMessageIds.has(msg.id));
+          
+          if (newMessages.length > 0) {
+            // eslint-disable-next-line no-console
+            console.log('📥 Found new Facebook messages:', newMessages.length);
+            setMessages(prev => [...prev, ...newMessages]);
+            
+            // Add to chat history
+            newMessages.forEach(msg => {
+              chatHistoryManager.addMessage(msg.text, msg.sender === 'user' ? 'customer' : 'agent');
+            });
           }
-          return prev;
-        });
-        
-        // Add to chat history manager
-        chatHistoryManager.addMessage(newMessage.text, newMessage.sender === 'user' ? 'customer' : 'agent');
-      },
-      (error) => {
+        }
+      } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('❌ SSE connection error:', error);
-      }
-    );
-
-    setSseConnection(eventSource);
-
-    return () => {
-      if (eventSource) {
-        // eslint-disable-next-line no-console
-        console.log('🔌 Closing SSE connection');
-        eventSource.close();
-        setSseConnection(null);
+        console.error('❌ Error polling for messages:', error);
       }
     };
-  }, [isAuthenticated, isOpen, userPSID]);
 
-  // Close SSE connection when chat is closed
-  useEffect(() => {
-    if (!isOpen && sseConnection) {
-      // eslint-disable-next-line no-console
-      console.log('🔌 Closing SSE connection (chat closed)');
-      sseConnection.close();
-      setSseConnection(null);
-    }
-  }, [isOpen, sseConnection]);
+    // Poll every 2 seconds - simple and reliable
+    const pollInterval = setInterval(pollForMessages, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [isAuthenticated, isOpen, userPSID, messages]);
+
 
   // Initialize chat history when component mounts (not on support page)
   useEffect(() => {

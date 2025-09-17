@@ -167,6 +167,16 @@ export default async function handler(req, res) {
                   console.error('❌ Store error stack:', storeError.stack);
                 }
 
+                // Try to broadcast message to SSE clients directly
+                console.log('📢 Attempting to broadcast message to SSE clients...');
+                try {
+                  // Force notification to SSE listeners
+                  messageStore.notifyListeners(senderId, incomingMessage);
+                  console.log('✅ Message broadcast attempted');
+                } catch (broadcastError) {
+                  console.error('❌ Error broadcasting message:', broadcastError);
+                }
+                
                 // Note: Sunshine Conversations integration removed
                 // Messages are now handled via local chat history and Zendesk Web Widget prefill
                 console.log('📝 Message stored in local store for potential transfer to Zendesk widget');
