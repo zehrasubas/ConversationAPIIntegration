@@ -10,6 +10,7 @@ class MessageStore {
     this.messages = global.messageStoreData;
     this.listeners = new Set(); // SSE connections listening for new messages
     console.log('🏗️ MessageStore initialized with', Object.keys(this.messages).length, 'users');
+    console.log('🌍 Global messageStoreData keys:', Object.keys(global.messageStoreData));
   }
 
   addMessage(userId, message) {

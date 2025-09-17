@@ -95,10 +95,34 @@ const ChatBox = ({ user }) => {
         sessionStorage.setItem('userPSID', psid);
       } else {
         // eslint-disable-next-line no-console
-        console.log('📝 No conversations found. User needs to message the Facebook Page first.');
-        console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
-        console.log('🔧 Temporary: You can manually set a PSID by running: sessionStorage.setItem("userPSID", "YOUR_PSID")');
-        // Don't set any fallback PSID - wait for real one
+        console.log('📝 No conversations found via API. Checking for known PSID...');
+        
+        // Check for known user mapping from environment variables
+        const facebookUserId = user?.id;
+        console.log('🔍 Checking for known PSID mapping for user:', facebookUserId);
+        
+        // Try to get PSID mapping from server
+        try {
+          const mappingResponse = await fetch('/api/psid/mapping', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ facebookUserId })
+          });
+          
+          const mappingData = await mappingResponse.json();
+          
+          if (mappingResponse.ok && mappingData.success && mappingData.psid) {
+            console.log('✅ Found PSID mapping for this user:', mappingData.psid);
+            setUserPSID(mappingData.psid);
+            sessionStorage.setItem('userPSID', mappingData.psid);
+          } else {
+            console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
+            console.log('🔧 Temporary: You can manually set a PSID by running: sessionStorage.setItem("userPSID", "YOUR_PSID")');
+          }
+        } catch (error) {
+          console.error('❌ Error checking PSID mapping:', error);
+          console.log('💡 Please send a message to the Facebook Page to establish a conversation.');
+        }
       }
     } catch (error) {
       // eslint-disable-next-line no-console
