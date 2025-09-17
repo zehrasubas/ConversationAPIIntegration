@@ -1,6 +1,7 @@
 // Facebook Webhook Handler for Vercel
 const fetch = require('node-fetch');
 const messageStore = require('./shared/messageStore');
+const simpleStorage = require('./shared/simpleStorage');
 
 // Send message to Facebook
 async function sendToFacebook(recipientId, text) {
@@ -158,12 +159,16 @@ export default async function handler(req, res) {
                 console.log('🔄 Message to store:', JSON.stringify(incomingMessage, null, 2));
                 
                 try {
+                  // Store in original messageStore
                   const storedMessage = messageStore.addMessage(senderId, incomingMessage);
                   console.log('✅ Successfully stored message in local store:', JSON.stringify(storedMessage, null, 2));
-                  console.log('🔍 Current message count for user:', messageStore.getMessages(senderId).length);
-                  console.log('🔍 All stored user IDs:', Object.keys(messageStore.messages || {}));
+                  
+                  // ALSO store in simple storage for cross-function access
+                  simpleStorage.storeMessage(senderId, incomingMessage);
+                  console.log('✅ Also stored in simple storage for webhook access');
+                  
                 } catch (storeError) {
-                  console.error('❌ Error storing message in messageStore:', storeError);
+                  console.error('❌ Error storing message:', storeError);
                   console.error('❌ Store error stack:', storeError.stack);
                 }
 

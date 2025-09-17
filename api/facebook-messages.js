@@ -14,26 +14,30 @@ export default async function handler(req, res) {
 
     console.log('🔍 Getting messages for PSID:', psid);
 
-    // For prototype: return mock messages based on recent webhook activity
-    // In real implementation, you'd query Facebook's API
+    // Get real messages from webhook via simple storage
+    const simpleStorage = require('./shared/simpleStorage');
     
-    const mockMessages = [
-      {
-        id: 'msg_' + Date.now(),
-        text: 'Hello from Facebook Messenger!',
-        sender: 'business', // Facebook user appears as business in web chat
+    try {
+      const messages = simpleStorage.getMessages(psid);
+      console.log(`📚 Found ${messages.length} real webhook messages for PSID ${psid}`);
+      console.log(`📊 All PSIDs with messages: ${simpleStorage.getAllPSIDs()}`);
+      
+      res.json({
+        success: true,
+        messages: messages,
         timestamp: new Date().toISOString(),
-        source: 'facebook_messenger'
-      }
-    ];
-
-    // Return empty for now - webhook logging shows it receives messages
-    res.json({
-      success: true,
-      messages: [], // Empty until we implement proper Facebook API polling
-      timestamp: new Date().toISOString(),
-      note: 'Prototype mode - implement Facebook Conversations API here'
-    });
+        note: `Retrieved ${messages.length} real messages from webhook storage`
+      });
+      
+    } catch (error) {
+      console.error('❌ Error accessing simple storage:', error);
+      res.json({
+        success: true,
+        messages: [],
+        timestamp: new Date().toISOString(),
+        note: 'Error accessing webhook storage'
+      });
+    }
 
   } catch (error) {
     console.error('❌ Error getting Facebook messages:', error);
